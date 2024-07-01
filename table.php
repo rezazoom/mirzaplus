@@ -266,14 +266,14 @@ try {
         while ($row = mysqli_fetch_assoc($id_admin)) {
             $admin_ids[] = $row['id_admin'];
         }
-        if (!in_array($adminnumber, $admin_ids)) {
-            $connect->query("INSERT INTO admin (id_admin) VALUES ('$adminnumber')");
+        if (!in_array($SUID, $admin_ids)) {
+            $connect->query("INSERT INTO admin (id_admin) VALUES ('$SUID')");
             echo "table admin update✅</br>";
         }
     } else {
         $result =  $connect->query("CREATE TABLE admin (
         id_admin varchar(200) PRIMARY KEY NOT NULL)");
-        $connect->query("INSERT INTO admin (id_admin) VALUES ('$adminnumber')");
+        $connect->query("INSERT INTO admin (id_admin) VALUES ('$SUID')");
         if (!$result) {
             echo "table admin".mysqli_error($connect);
         }  }

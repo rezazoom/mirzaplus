@@ -19,7 +19,7 @@ if($checkprice !=$amount){
 $data = [
 'pin'    => $PaySetting,
 'amount'    => $amount,
-'callback' => $domainhosts."/payment/aqayepardakht/back.php",
+'callback' => $BOTURL."/payment/aqayepardakht/back.php",
 'invoice_id' => $invoice_id,
 ];
 

@@ -1,8 +1,12 @@
 <?php
-// کرون جاب هر 1 روز تنظیم شود
+
+// Set this cronjob daily
+// 0 9 * * * /usr/bin/php /path/to/your/Cron_Daily.php
+
 require_once 'config.php';
 require_once 'apipanel.php';
 require_once 'botapi.php';
+
 #-------------[  Notification to the user ]-------------#
 $list_service = mysqli_query($connect, "SELECT * FROM invoice");
 while ($row = mysqli_fetch_assoc($list_service)) {

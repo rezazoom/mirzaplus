@@ -116,7 +116,7 @@ $text_report = "💵 پرداخت جدید
         <p>مبلغ پرداختی:  <span><?php echo $response['price_amount'] ?></span> دلار</p>
         <p>تاریخ: <span>  <?php echo jdate('Y/m/d')  ?>  </span></p>
         <p><?php echo $dec_payment_status ?></p>
-        <a class = "btn" href = "https://t.me/<?php echo $usernamebot ?>">بازگشت به ربات</a>
+        <a class = "btn" href = "https://t.me/<?php echo $BOTUSERNAME ?>">بازگشت به ربات</a>
     </div>
 </body>
 </html>

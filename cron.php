@@ -1,12 +1,17 @@
 <?php
-// کرون جاب هر 5 دقیقه تنظیم شود
+
+// Set it to run every 5 minutes.
+// */5 * * * * /usr/bin/php /path/to/your/cron.php
+
 require_once 'config.php';
 require_once 'apipanel.php';
 require_once 'botapi.php';
+
 #-------------[ Remove the test user if the user is inactive ]-------------#
 $query = "SELECT * FROM TestAccount";
 $result = mysqli_query($connect, $query);
 $rows = mysqli_fetch_all($result, MYSQLI_ASSOC);
+
 foreach($rows as $row) {
     $marzban_list_get = mysqli_fetch_assoc(mysqli_query($connect, "SELECT * FROM marzban_panel WHERE name_panel = '{$row['Service_location']}'"));
     $get_username_Check = getuser($row['username'], $marzban_list_get['name_panel']);

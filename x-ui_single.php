@@ -1,7 +1,5 @@
 <?php
 require_once 'config.php';
-
-
 function login($url,$username,$password){
 $curl = curl_init();
 curl_setopt_array($curl, array(
