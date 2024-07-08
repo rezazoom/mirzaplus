@@ -1,10 +1,7 @@
 <?php
-
 ini_set('error_log', 'error_log');
-$version = "0.0.1";
-
+$version = "4.8.6";
 date_default_timezone_set('Asia/Tehran');
-
 require_once 'config.php';
 require_once 'botapi.php';
 require_once 'apipanel.php';
@@ -14,39 +11,32 @@ require_once 'text.php';
 require_once 'functions.php';
 require_once 'panels.php';
 require_once 'vendor/autoload.php';
-
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
 
-function telegram_ip_check($request_remote_address): void
-{
-    #-----------telegram_ip_ranges------------#
-    $telegram_ip_ranges = [
-        ['lower' => '149.154.160.0', 'upper' => '149.154.175.255'],
-        ['lower' => '91.108.4.0', 'upper' => '91.108.7.255']
-    ];
-    $ip_dec = (float)sprintf("%u", ip2long($request_remote_address));
-    $ok = false;
-    foreach ($telegram_ip_ranges as $telegram_ip_range)
-        if (!$ok) {
-            $lower_dec = (float)sprintf("%u", ip2long($telegram_ip_range['lower']));
-            $upper_dec = (float)sprintf("%u", ip2long($telegram_ip_range['upper']));
-            if ($ip_dec >= $lower_dec and $ip_dec <= $upper_dec)
-                $ok = true;
-        }
-    if (!$ok)
-        die ("Unauthorized Access denied.");
-}
-
-if (TELEGRAM_IP_CHECK) telegram_ip_check($_SERVER['REMOTE_ADDR']);
-
+#-----------telegram_ip_ranges------------#
+$telegram_ip_ranges = [
+    ['lower' => '149.154.160.0', 'upper' => '149.154.175.255'],
+    ['lower' => '91.108.4.0', 'upper' => '91.108.7.255']
+];
+$ip_dec = (float) sprintf("%u", ip2long($_SERVER['REMOTE_ADDR']));
+$ok = false;
+foreach ($telegram_ip_ranges as $telegram_ip_range)
+    if (!$ok) {
+        $lower_dec = (float) sprintf("%u", ip2long($telegram_ip_range['lower']));
+        $upper_dec = (float) sprintf("%u", ip2long($telegram_ip_range['upper']));
+        if ($ip_dec >= $lower_dec and $ip_dec <= $upper_dec)
+            $ok = true;
+    }
+if (!$ok)
+    die ("دسترسی غیرمجاز");
 #-------------Variable----------#
-$users_ids = select("user", "id", null, null, "FETCH_COLUMN");
+$users_ids = select("user", "id",null,null,"FETCH_COLUMN");
 $setting = select("setting", "*");
-if (!in_array($from_id, $users_ids)) {
+if(!in_array($from_id,$users_ids) && intval($from_id) != 0){
     $Response = json_encode([
         'inline_keyboard' => [
             [
@@ -131,7 +121,7 @@ foreach ($datatxtbot as $item) {
 }
 
 $existingCronCommands = shell_exec('crontab -l');
-$phpFilePath = "https://$BOTURL/cron/sendmessage.php";
+$phpFilePath = "https://$domainhosts/cron/sendmessage.php";
 $cronCommand = "*/1 * * * * curl $phpFilePath";
 if (strpos($existingCronCommands, $cronCommand) === false) {
     $command = "(crontab -l ; echo '$cronCommand') | crontab -";
@@ -170,7 +160,7 @@ if (strpos($text, "/start ") !== false) {
     if (!ctype_digit($affiliatesid))
         return;
     if (!in_array($affiliatesid, $users_ids)) {
-        sendmessage($from_id, $textbotlang['users']['affiliates']['affiliatesyou'], null, 'html');
+        sendmessage($from_id,$textbotlang['users']['affiliates']['affiliatesyou'], null, 'html');
         return;
     }
     if ($affiliatesid == $from_id) {
@@ -214,11 +204,11 @@ if (floor($TimeLastMessage / 60) >= 1) {
 if ($datain == "confirmchannel") {
     if (!in_array($tch, ['member', 'creator', 'administrator'])) {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['users']['channel']['notconfirmed'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['users']['channel']['notconfirmed'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
     } else {
         deletemessage($from_id, $message_id);
@@ -263,18 +253,18 @@ if ($setting['Bot_Status'] == "❌ ربات خاموش است" && !in_array($fro
 }
 #-----------/start------------#
 if ($text == "/start") {
-    update("user", "Processing_value", "0", "id", $from_id);
-    update("user", "Processing_value_one", "0", "id", $from_id);
-    update("user", "Processing_value_tow", "0", "id", $from_id);
+    update("user","Processing_value","0", "id",$from_id);
+    update("user","Processing_value_one","0", "id",$from_id);
+    update("user","Processing_value_tow","0", "id",$from_id);
     sendmessage($from_id, $datatextbot['text_start'], $keyboard, 'html');
     step('home', $from_id);
     return;
 }
 #-----------back------------#
 if ($text == "🏠 بازگشت به منوی اصلی" || $datain == "backuser") {
-    update("user", "Processing_value", "0", "id", $from_id);
-    update("user", "Processing_value_one", "0", "id", $from_id);
-    update("user", "Processing_value_tow", "0", "id", $from_id);
+    update("user","Processing_value","0", "id",$from_id);
+    update("user","Processing_value_one","0", "id",$from_id);
+    update("user","Processing_value_tow","0", "id",$from_id);
     if ($datain == "backuser")
         deletemessage($from_id, $message_id);
     sendmessage($from_id, $textbotlang['users']['back'], $keyboard, 'html');
@@ -520,21 +510,21 @@ if (preg_match('/product_(\w+)/', $datain, $dataget)) {
         sendmessage($from_id, $textbotlang['users']['stateus']['usernotfound'], $keyboard, 'html');
         return;
     }
-    if ($DataUserOut['status'] == "Unsuccessful") {
+    if($DataUserOut['status'] == "Unsuccessful"){
         sendmessage($from_id, $textbotlang['users']['stateus']['error'], $keyboard, 'html');
         return;
     }
-    if ($DataUserOut['online_at'] == "online") {
+    if($DataUserOut['online_at'] == "online"){
         $lastonline = $textbotlang['users']['online'];
-    } elseif ($DataUserOut['online_at'] == "offline") {
+    }elseif($DataUserOut['online_at'] == "offline"){
         $lastonline = $textbotlang['users']['offline'];
-    } else {
-        if (isset($DataUserOut['online_at']) && $DataUserOut['online_at'] !== null) {
-            $dateString = $DataUserOut['online_at'];
-            $lastonline = jdate('Y/m/d h:i:s', strtotime($dateString));
-        } else {
-            $lastonline = $textbotlang['users']['stateus']['notconnected'];
-        }
+    }else{
+    if(isset($DataUserOut['online_at']) && $DataUserOut['online_at'] !== null){
+        $dateString = $DataUserOut['online_at'];
+        $lastonline = jdate('Y/m/d h:i:s',strtotime($dateString));
+    }else{
+        $lastonline = $textbotlang['users']['stateus']['notconnected'];
+    }
     }
     #-------------status----------------#
     $status = $DataUserOut['status'];
@@ -611,11 +601,11 @@ if (preg_match('/subscriptionurl_(\w+)/', $datain, $dataget)) {
     $result = $writer->write($qrCode, null, null);
     $result->saveToFile($urlimage);
     telegram('sendphoto', [
-        'chat_id' => $from_id,
-        'photo' => new CURLFile($urlimage),
-        'caption' => $textsub,
-        'parse_mode' => "HTML",
-    ]);
+            'chat_id' => $from_id,
+            'photo' => new CURLFile($urlimage),
+            'caption' => $textsub,
+            'parse_mode' => "HTML",
+        ]);
     unlink($urlimage);
 } elseif (preg_match('/config_(\w+)/', $datain, $dataget)) {
     $username = $dataget[1];
@@ -624,23 +614,23 @@ if (preg_match('/subscriptionurl_(\w+)/', $datain, $dataget)) {
     $DataUserOut = $ManagePanel->DataUser($nameloc['Service_location'], $username);
     foreach ($DataUserOut['links'] as $configs) {
         $randomString = bin2hex(random_bytes(2));
-        $urlimage = "$from_id$randomString.png";
-        $writer = new PngWriter();
-        $qrCode = QrCode::create($configs)
-            ->setEncoding(new Encoding('UTF-8'))
-            ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
-            ->setSize(400)
-            ->setMargin(0)
-            ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin);
-        $result = $writer->write($qrCode, null, null);
-        $result->saveToFile($urlimage);
-        telegram('sendphoto', [
+    $urlimage = "$from_id$randomString.png";
+    $writer = new PngWriter();
+    $qrCode = QrCode::create($configs)
+        ->setEncoding(new Encoding('UTF-8'))
+        ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
+        ->setSize(400)
+        ->setMargin(0)
+        ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin);
+    $result = $writer->write($qrCode, null, null);
+    $result->saveToFile($urlimage);
+    telegram('sendphoto', [
             'chat_id' => $from_id,
             'photo' => new CURLFile($urlimage),
             'caption' => "<code>$configs</code>",
             'parse_mode' => "HTML",
         ]);
-        unlink($urlimage);
+    unlink($urlimage);
     }
 } elseif (preg_match('/extend_(\w+)/', $datain, $dataget)) {
     $username = $dataget[1];
@@ -778,7 +768,7 @@ if (preg_match('/subscriptionurl_(\w+)/', $datain, $dataget)) {
 👤 نام کاربری مشتری در پنل  : $usernamepanel
 موجودی کاربر : $balanceformatsell تومان
 لوکیشن سرویس کاربر : {$nameloc['Service_location']}";
-    if (isset($setting['Channel_Report']) && strlen($setting['Channel_Report']) > 0) {
+    if (isset($setting['Channel_Report']) &&strlen($setting['Channel_Report']) > 0) {
         sendmessage($setting['Channel_Report'], $text_report, null, 'HTML');
     }
 } elseif (preg_match('/changelink_(\w+)/', $datain, $dataget)) {
@@ -851,10 +841,10 @@ if (preg_match('/subscriptionurl_(\w+)/', $datain, $dataget)) {
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     $DataUserOut = $ManagePanel->DataUser($marzban_list_get['name_panel'], $user['Processing_value']);
     $data_limit = $DataUserOut['data_limit'] + ($volume / $setting['Extra_volume'] * pow(1024, 3));
-    if ($marzban_list_get['type'] == "marzban") {
+     if ($marzban_list_get['type'] == "marzban") {
         $datam = array(
-            "data_limit" => $data_limit
-        );
+        "data_limit" => $data_limit
+    );
     } elseif ($marzban_list_get['type'] == "x-ui_single") {
         $datam = array(
             'id' => intval($marzban_list_get['inboundid']),
@@ -885,7 +875,7 @@ if (preg_match('/subscriptionurl_(\w+)/', $datain, $dataget)) {
 🪪 آیدی عددی : $from_id
 🛍 حجم خریداری شده  : $volumes
 💰 مبلغ پرداختی : $volume تومان";
-    if (isset($setting['Channel_Report']) && strlen($setting['Channel_Report']) > 0) {
+if (isset($setting['Channel_Report']) &&strlen($setting['Channel_Report']) > 0) {
         sendmessage($setting['Channel_Report'], $text_report, null, 'HTML');
     }
 } elseif (preg_match('/removeserviceuserco-(\w+)/', $datain, $dataget)) {
@@ -970,7 +960,7 @@ if (preg_match('/subscriptionurl_(\w+)/', $datain, $dataget)) {
     $confirmremoveadmin = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $textbotlang['users']['removeconfig']['btnremoveuser'], 'callback_data' => "remoceserviceadmin-$usernamepanel"],
+                ['text' => $textbotlang['users']['removeconfig']['btnremoveuser'] , 'callback_data' => "remoceserviceadmin-$usernamepanel"],
                 ['text' => $textbotlang['users']['removeconfig']['rejectremove'], 'callback_data' => "rejectremoceserviceadmin-$usernamepanel"],
             ],
         ]
@@ -1147,7 +1137,7 @@ if ($user['step'] == "createusertest" || preg_match('/locationtests_(.*)/', $dat
 اطلاعات کاربر 👇👇
 ⚜️ نام کاربری کاربر: @{$user['username']}
 آیدی عددی کاربر : <code>$from_id</code>";
-    if (isset($setting['Channel_Report']) && strlen($setting['Channel_Report']) > 0) {
+    if (isset($setting['Channel_Report']) &&strlen($setting['Channel_Report']) > 0) {
         sendmessage($setting['Channel_Report'], $text_report, $usertestReport, 'HTML');
     }
 }
@@ -1323,8 +1313,8 @@ if ($text == $datatextbot['text_sell']) {
     sendmessage($from_id, $textbotlang['users']['selectusername'], $backuser, 'html');
     step('endstepuser', $from_id);
 } elseif ($user['step'] == "endstepuser" || preg_match('/prodcutservice_(.*)/', $datain, $dataget)) {
-    if ($user['step'] != "endstepuser") {
-        $prodcut = $dataget[1];
+    if($user['step'] != "endstepuser"){
+    $prodcut = $dataget[1];
     }
     $panellist = select("marzban_panel", "*", "name_panel", $user['Processing_value'], "select");
     if ($panellist['MethodUsername'] == "نام کاربری دلخواه") {
@@ -1383,16 +1373,16 @@ if ($text == $datatextbot['text_sell']) {
     }
     if ($priceproduct > $user['Balance']) {
         $Balance_prim = $priceproduct - $user['Balance'];
-        update("user", "Processing_value", $Balance_prim, "id", $from_id);
+        update("user","Processing_value",$Balance_prim, "id",$from_id);
         sendmessage($from_id, $textbotlang['users']['sell']['None-credit'], $step_payment, 'HTML');
         step('get_step_payment', $from_id);
         $stmt = $connect->prepare("INSERT IGNORE INTO invoice(id_user, id_invoice, username,time_sell, Service_location, name_product, price_product, Volume, Service_time,Status) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?,?)");
-        $Status = "unpaid";
+        $Status =  "unpaid";
         $stmt->bind_param("ssssssssss", $from_id, $randomString, $username_ac, $date, $marzban_list_get['name_panel'], $info_product['name_product'], $info_product['price_product'], $info_product['Volume_constraint'], $info_product['Service_time'], $Status);
-        $stmt->execute();
-        $stmt->close();
-        update("user", "Processing_value_one", $username_ac, "id", $from_id);
-        update("user", "Processing_value_tow", "getconfigafterpay", "id", $from_id);
+       $stmt->execute();
+       $stmt->close();
+        update("user","Processing_value_one",$username_ac, "id",$from_id);
+        update("user","Processing_value_tow","getconfigafterpay", "id",$from_id);
         return;
     }
     $DataUserOut = $ManagePanel->DataUser($marzban_list_get['name_panel'], $username_ac);
@@ -1417,11 +1407,11 @@ if ($text == $datatextbot['text_sell']) {
     $stmt->bindParam(9, $info_product['Service_time']);
     $stmt->bindParam(10, $Status);
     $stmt->execute();
-    if ($info_product['Service_time'] == "0") {
-        $data = "0";
-    } else {
-        $date = strtotime("+" . $info_product['Service_time'] . "days");
-        $data = strtotime(date("Y-m-d H:i:s", $date));
+    if($info_product['Service_time'] == "0"){
+     $data = "0";   
+    }else{
+    $date = strtotime("+" . $info_product['Service_time'] . "days");
+    $data = strtotime(date("Y-m-d H:i:s", $date));
     }
     $datac = array(
         'expire' => $data,
@@ -1448,7 +1438,7 @@ if ($text == $datatextbot['text_sell']) {
         $value = intval($SellDiscountlimit['usedDiscount']) + 1;
         update("DiscountSell", "usedDiscount", $value, "codeDiscount", $partsdic[0]);
         $text_report = "⭕️ یک کاربر با نام کاربری @$username  و آیدی عددی $from_id از کد تخفیف {$partsdic[0]} استفاده کرد.";
-        if (isset($setting['Channel_Report']) && strlen($setting['Channel_Report']) > 0) {
+        if (isset($setting['Channel_Report']) &&strlen($setting['Channel_Report']) > 0) {
             sendmessage($setting['Channel_Report'], $text_report, null, 'HTML');
         }
     }
@@ -1457,14 +1447,14 @@ if ($text == $datatextbot['text_sell']) {
         $affiliatescommission = select("affiliates", "*", null, null, "select");
         $result = ($priceproduct * $affiliatescommission['affiliatespercentage']) / 100;
         $user_Balance = select("user", "*", "id", $user['affiliates'], "select");
-        if ($user_Balance) {
-            $Balance_prim = $user_Balance['Balance'] + $result;
-            update("user", "Balance", $Balance_prim, "id", $user['affiliates']);
-            $result = number_format($result);
-            $textadd = "🎁  پرداخت پورسانت 
+        if($user_Balance){
+        $Balance_prim = $user_Balance['Balance'] + $result;
+        update("user", "Balance", $Balance_prim, "id", $user['affiliates']);
+        $result = number_format($result);
+        $textadd = "🎁  پرداخت پورسانت 
     
 مبلغ $result تومان به حساب شما از طرف  زیر مجموعه تان به کیف پول شما واریز گردید";
-            sendmessage($user['affiliates'], $textadd, null, 'HTML');
+        sendmessage($user['affiliates'], $textadd, null, 'HTML');
         }
     }
     $link_config = "";
@@ -1542,7 +1532,7 @@ $link_config
     
         اطلاعات کاربر 👇👇
         ⚜️ نام کاربری کاربر: @$username";
-    if (isset($setting['Channel_Report']) && strlen($setting['Channel_Report']) > 0) {
+    if (isset($setting['Channel_Report']) &&strlen($setting['Channel_Report']) > 0) {
         sendmessage($setting['Channel_Report'], $text_report, null, 'HTML');
     }
     step('home', $from_id);
@@ -1611,6 +1601,7 @@ $link_config
 }
 
 
+
 #-------------------[ text_Add_Balance ]---------------------#
 if ($text == $datatextbot['text_Add_Balance']) {
     if ($setting['get_number'] == "✅ تایید شماره موبایل روشن است" && $user['step'] != "get_number" && $user['number'] == "none") {
@@ -1657,24 +1648,24 @@ if ($text == $datatextbot['text_Add_Balance']) {
         $randomString = bin2hex(random_bytes(5));
         $payment_Status = "Unpaid";
         $Payment_Method = "aqayepardakht";
-        if ($user['Processing_value_tow'] == "getconfigafterpay") {
-            $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
-        } else {
-            $invoice = "0|0";
-        }
-        $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user, id_order, time, price, payment_Status, Payment_Method,invoice) VALUES (?, ?, ?, ?, ?, ?,?)");
-        $stmt->bindParam(1, $from_id);
-        $stmt->bindParam(2, $randomString);
-        $stmt->bindParam(3, $dateacc);
-        $stmt->bindParam(4, $user['Processing_value'], PDO::PARAM_STR);
-        $stmt->bindParam(5, $payment_Status);
-        $stmt->bindParam(6, $Payment_Method);
-        $stmt->bindParam(7, $invoice);
-        $stmt->execute();
+        if($user['Processing_value_tow'] == "getconfigafterpay"){
+    $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
+    }else{
+     $invoice = "0|0";
+    }
+    $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user, id_order, time, price, payment_Status, Payment_Method,invoice) VALUES (?, ?, ?, ?, ?, ?,?)");
+    $stmt->bindParam(1, $from_id);
+    $stmt->bindParam(2, $randomString);
+    $stmt->bindParam(3, $dateacc);
+    $stmt->bindParam(4, $user['Processing_value'], PDO::PARAM_STR);
+    $stmt->bindParam(5, $payment_Status);
+    $stmt->bindParam(6, $Payment_Method);
+    $stmt->bindParam(7, $invoice);
+    $stmt->execute();
         $paymentkeyboard = json_encode([
             'inline_keyboard' => [
                 [
-                    ['text' => $textbotlang['users']['Balance']['payments'], 'url' => "https://" . "$BOTURL" . "/payment/aqayepardakht/aqayepardakht.php?price={$user['Processing_value']}&order_id=$randomString"],
+                    ['text' => $textbotlang['users']['Balance']['payments'], 'url' => "https://" . "$domainhosts" . "/payment/aqayepardakht/aqayepardakht.php?price={$user['Processing_value']}&order_id=$randomString"],
                 ]
             ]
         ]);
@@ -1702,24 +1693,24 @@ if ($text == $datatextbot['text_Add_Balance']) {
         $randomString = bin2hex(random_bytes(5));
         $payment_Status = "Unpaid";
         $Payment_Method = "Nowpayments";
-        if ($user['Processing_value_tow'] == "getconfigafterpay") {
-            $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
-        } else {
-            $invoice = "0|0";
-        }
-        $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user, id_order, time, price, payment_Status, Payment_Method,invoice) VALUES (?, ?, ?, ?, ?, ?,?)");
-        $stmt->bindParam(1, $from_id);
-        $stmt->bindParam(2, $randomString);
-        $stmt->bindParam(3, $dateacc);
-        $stmt->bindParam(4, $user['Processing_value'], PDO::PARAM_STR);
-        $stmt->bindParam(5, $payment_Status);
-        $stmt->bindParam(6, $Payment_Method);
-        $stmt->bindParam(7, $invoice);
-        $stmt->execute();
+        if($user['Processing_value_tow'] == "getconfigafterpay"){
+    $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
+    }else{
+     $invoice = "0|0";
+    }
+    $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user, id_order, time, price, payment_Status, Payment_Method,invoice) VALUES (?, ?, ?, ?, ?, ?,?)");
+    $stmt->bindParam(1, $from_id);
+    $stmt->bindParam(2, $randomString);
+    $stmt->bindParam(3, $dateacc);
+    $stmt->bindParam(4, $user['Processing_value'], PDO::PARAM_STR);
+    $stmt->bindParam(5, $payment_Status);
+    $stmt->bindParam(6, $Payment_Method);
+    $stmt->bindParam(7, $invoice);
+    $stmt->execute();
         $paymentkeyboard = json_encode([
             'inline_keyboard' => [
                 [
-                    ['text' => $textbotlang['users']['Balance']['payments'], 'url' => "https://" . "$BOTURL" . "/payment/nowpayments/nowpayments.php?price=$usdprice&order_description=Add_Balance&order_id=$randomString"],
+                    ['text' => $textbotlang['users']['Balance']['payments'], 'url' => "https://" . "$domainhosts" . "/payment/nowpayments/nowpayments.php?price=$usdprice&order_description=Add_Balance&order_id=$randomString"],
                 ]
             ]
         ]);
@@ -1755,20 +1746,20 @@ if ($text == $datatextbot['text_Add_Balance']) {
         $randomString = bin2hex(random_bytes(5));
         $payment_Status = "Unpaid";
         $Payment_Method = "Currency Rial gateway";
-        if ($user['Processing_value_tow'] == "getconfigafterpay") {
-            $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
-        } else {
-            $invoice = "0|0";
-        }
-        $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user, id_order, time, price, payment_Status, Payment_Method,invoice) VALUES (?, ?, ?, ?, ?, ?,?)");
-        $stmt->bindParam(1, $from_id);
-        $stmt->bindParam(2, $randomString);
-        $stmt->bindParam(3, $dateacc);
-        $stmt->bindParam(4, $user['Processing_value'], PDO::PARAM_STR);
-        $stmt->bindParam(5, $payment_Status);
-        $stmt->bindParam(6, $Payment_Method);
-        $stmt->bindParam(7, $invoice);
-        $stmt->execute();
+        if($user['Processing_value_tow'] == "getconfigafterpay"){
+    $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
+    }else{
+     $invoice = "0|0";
+    }
+    $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user, id_order, time, price, payment_Status, Payment_Method,invoice) VALUES (?, ?, ?, ?, ?, ?,?)");
+    $stmt->bindParam(1, $from_id);
+    $stmt->bindParam(2, $randomString);
+    $stmt->bindParam(3, $dateacc);
+    $stmt->bindParam(4, $user['Processing_value'], PDO::PARAM_STR);
+    $stmt->bindParam(5, $payment_Status);
+    $stmt->bindParam(6, $Payment_Method);
+    $stmt->bindParam(7, $invoice);
+    $stmt->execute();
         $order_description = "weswap_" . $randomString . "_" . $trxprice;
         $pay = nowPayments('payment', $usdprice, $randomString, $order_description);
         if (!isset ($pay->pay_address)) {
@@ -1875,15 +1866,15 @@ if ($user['step'] == "getvcodeuser") {
     $voucherAmount = substr($Voucher, $startPos, $endPos - $startPos);
     $USD = $voucherAmount * json_decode(file_get_contents('https://api.tetherland.com/currencies'), true)['data']['currencies']['USDT']['price'];
     $USD = number_format($USD, 0);
-    update("Payment_report", "payment_Status", "paid", "id_order", $Payment_report['id_order']);
+    update("Payment_report","payment_Status","paid","id_order",$Payment_report['id_order']);
     $randomString = bin2hex(random_bytes(5));
     $dateacc = date('Y/m/d h:i:s');
     $payment_Status = "paid";
     $Payment_Method = "perfectmoney";
-    if ($user['Processing_value_tow'] == "getconfigafterpay") {
-        $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
-    } else {
-        $invoice = "0|0";
+    if($user['Processing_value_tow'] == "getconfigafterpay"){
+    $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
+    }else{
+     $invoice = "0|0";
     }
     $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user, id_order, time, price, payment_Status, Payment_Method,invoice) VALUES (?, ?, ?, ?, ?, ?,?)");
     $stmt->bindParam(1, $from_id);
@@ -1895,9 +1886,9 @@ if ($user['step'] == "getvcodeuser") {
     $stmt->bindParam(7, $invoice);
     $stmt->execute();
     DirectPayment($randomString);
-    update("user", "Processing_value", "0", "id", $Balance_id['id']);
-    update("user", "Processing_value_one", "0", "id", $Balance_id['id']);
-    update("user", "Processing_value_tow", "0", "id", $Balance_id['id']);
+    update("user","Processing_value","0", "id",$Balance_id['id']);
+    update("user","Processing_value_one","0", "id",$Balance_id['id']);
+    update("user","Processing_value_tow","0", "id",$Balance_id['id']);
 }
 if (preg_match('/Confirmpay_user_(\w+)_(\w+)/', $datain, $dataget)) {
     $id_payment = $dataget[1];
@@ -1905,22 +1896,22 @@ if (preg_match('/Confirmpay_user_(\w+)_(\w+)/', $datain, $dataget)) {
     $Payment_report = select("Payment_report", "*", "id_order", $id_order, "select");
     if ($Payment_report['payment_Status'] == "paid") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['users']['Balance']['Confirmpayadmin'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['users']['Balance']['Confirmpayadmin'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
         return;
     }
     $StatusPayment = StatusPayment($id_payment);
     if ($StatusPayment['payment_status'] == "finished") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['users']['Balance']['finished'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['users']['Balance']['finished'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
         $Balance_id = select("user", "*", "id", $Payment_report['id_user'], "select");
         $Balance_confrim = intval($Balance_id['Balance']) + intval($Payment_report['price']);
@@ -1933,48 +1924,48 @@ if (preg_match('/Confirmpay_user_(\w+)_(\w+)/', $datain, $dataget)) {
 آیدی عددی کاربر : $from_id
 مبلغ تراکنش : {$Payment_report['price']} 
 روش پرداخت :  درگاه ارزی ریالی";
-        if (isset($setting['Channel_Report']) && strlen($setting['Channel_Report']) > 0) {
+        if (isset($setting['Channel_Report']) &&strlen($setting['Channel_Report']) > 0) {
             sendmessage($setting['Channel_Report'], $text_report, null, 'HTML');
         }
     } elseif ($StatusPayment['payment_status'] == "expired") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['users']['Balance']['expired'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['users']['Balance']['expired'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
     } elseif ($StatusPayment['payment_status'] == "refunded") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['users']['Balance']['refunded'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['users']['Balance']['refunded'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
     } elseif ($StatusPayment['payment_status'] == "waiting") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['users']['Balance']['waiting'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['users']['Balance']['waiting'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
     } elseif ($StatusPayment['payment_status'] == "sending") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['users']['Balance']['sending'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['users']['Balance']['sending'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
     } else {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['users']['Balance']['Failed'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['users']['Balance']['Failed'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
     }
 } elseif ($user['step'] == "cart_to_cart_user") {
@@ -1986,10 +1977,10 @@ if (preg_match('/Confirmpay_user_(\w+)_(\w+)/', $datain, $dataget)) {
     $randomString = bin2hex(random_bytes(5));
     $payment_Status = "Unpaid";
     $Payment_Method = "cart to cart";
-    if ($user['Processing_value_tow'] == "getconfigafterpay") {
-        $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
-    } else {
-        $invoice = "0|0";
+    if($user['Processing_value_tow'] == "getconfigafterpay"){
+    $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
+    }else{
+     $invoice = "0|0";
     }
     $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user, id_order, time, price, payment_Status, Payment_Method,invoice) VALUES (?, ?, ?, ?, ?, ?,?)");
     $stmt->bindParam(1, $from_id);
@@ -2089,7 +2080,7 @@ if ($text == "👥 زیر مجموعه گیری") {
         return;
     }
     $affiliates = select("affiliates", "*", null, null, "select");
-    $textaffiliates = "{$affiliates['description']}\n\n🔗 https://t.me/$BOTUSERNAME?start=$from_id";
+    $textaffiliates = "{$affiliates['description']}\n\n🔗 https://t.me/$usernamebot?start=$from_id";
     telegram('sendphoto', [
         'chat_id' => $from_id,
         'photo' => $affiliates['id_media'],
@@ -2244,7 +2235,7 @@ if ($text == "📊 آمار ربات") {
     $stmt = $pdo->prepare("SELECT SUM(price_product) FROM invoice WHERE time_sell = '$date' AND status = 'active'");
     $stmt->execute();
     $value = $stmt->fetchColumn();
-    if ($value == null) $value = 0;
+    if($value == null )$value = 0;
     $suminvoiceday = number_format($value);
     $statistics = select("user", "id", null, null, "count");
     $stmt = $pdo->prepare("SELECT * FROM invoice WHERE  status = 'active'");
@@ -2283,7 +2274,7 @@ if ($text == "📊 آمار ربات") {
                 ['text' => $textbotlang['Admin']['Balanceall'], 'callback_data' => 'Balanceall'],
             ],
             [
-                ['text' => $suminvoiceday . " تومان", 'callback_data' => 'sumpro'],
+                ['text' => $suminvoiceday." تومان", 'callback_data' => 'sumpro'],
                 ['text' => $textbotlang['Admin']['sumporoduct'], 'callback_data' => 'sumpro'],
             ],
         ]
@@ -2365,7 +2356,7 @@ if ($text == "🖥  اضافه کردن پنل") {
     $valueteststatus = "ontestshowpanel";
     $stauts = "activepanel";
     $stmt = $pdo->prepare("INSERT INTO marzban_panel (name_panel, vless, vmess, trojan, shadowsocks,inboundid,sublink,configManual,MethodUsername,statusTest,status) VALUES (?, ?, ?, ?, ?,?,?,?,?,?,?)");
-    $stmt->execute([$text, $vless, $vmess, $trojan, $shadowsocks, $inboundid, $sublink, $config, $valusername, $valueteststatus, $stauts]);
+    $stmt->execute([$text, $vless, $vmess, $trojan, $shadowsocks, $inboundid, $sublink, $config,$valusername,$valueteststatus,$stauts]);
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['addpanelurl'], $backadmin, 'HTML');
     step('add_link_panel', $from_id);
     update("user", "Processing_value", $text, "id", $from_id);
@@ -2401,29 +2392,29 @@ if ($text == "📨 ارسال پیام") {
 } elseif ($text == "✉️ ارسال همگانی") {
     sendmessage($from_id, $textbotlang['Admin']['ManageUser']['GetText'], $backadmin, 'HTML');
     step('getconfirmsendall', $from_id);
-} elseif ($user['step'] == "getconfirmsendall") {
-    savedata("clear", "text", $text);
-    savedata("save", "id_admin", $from_id);
-    sendmessage($from_id, "در صورت تایید متن زیر را ارسال نمایید
+}elseif($user['step'] == "getconfirmsendall"){
+    savedata("clear","text",$text);
+    savedata("save","id_admin",$from_id);
+    sendmessage($from_id,"در صورت تایید متن زیر را ارسال نمایید
     تایید", $backadmin, 'HTML');
-    step("gettextforsendall", $from_id);
+    step("gettextforsendall",$from_id);
 } elseif ($user['step'] == "gettextforsendall") {
-    $userdata = json_decode($user['Processing_value'], true);
-    if ($text == "تایید") {
+    $userdata  = json_decode($user['Processing_value'],true);
+    if($text == "تایید"){
         step('home', $from_id);
-        $result = select("user", "id", "User_Status", "Active", "fetchAll");
+        $result = select("user","id","User_Status","Active","fetchAll");
         $Respuseronse = json_encode([
-            'inline_keyboard' => [
-                [
-                    ['text' => "لغو ارسال", 'callback_data' => 'cancel_sendmessage'],
-                ],
-            ]
-        ]);
-        file_put_contents('cron/users.json', json_encode($result));
-        file_put_contents('cron/info', $user['Processing_value']);
-        sendmessage($from_id, "📌 پیام شما  در صف ارسال قرار گرفت پس از ارسال پیام تایید برای شما ارسال می شود ( ارسال پیام ممکن است  حداکثر 8 ساعت زمان ببرد بدلیل محدودیت های تلگرام )", $Respuseronse, 'HTML');
-    }
-} elseif ($datain == "cancel_sendmessage") {
+        'inline_keyboard' => [
+            [
+                ['text' => "لغو ارسال", 'callback_data' => 'cancel_sendmessage'],
+            ],
+        ]
+    ]);
+        file_put_contents('cron/users.json',json_encode($result));
+        file_put_contents('cron/info',$user['Processing_value']);
+            sendmessage($from_id, "📌 پیام شما  در صف ارسال قرار گرفت پس از ارسال پیام تایید برای شما ارسال می شود ( ارسال پیام ممکن است  حداکثر 8 ساعت زمان ببرد بدلیل محدودیت های تلگرام )", $Respuseronse, 'HTML');
+        }
+}elseif($datain == "cancel_sendmessage"){
     unlink('cron/users.json');
     unlink('cron/info');
     deletemessage($from_id, $message_id);
@@ -2764,7 +2755,7 @@ if ($text == "👁‍🗨 وضعیت نمایش پنل") {
             ],
         ]
     ]);
-    sendmessage($from_id, "📌 در این بخش می توانید مشخص نمایید  که پنل در بخش خرید برای کاربر در دسترس باشد یا خیر", $view_Status, 'HTML');
+    sendmessage($from_id,"📌 در این بخش می توانید مشخص نمایید  که پنل در بخش خرید برای کاربر در دسترس باشد یا خیر", $view_Status, 'HTML');
 }
 if ($datain == "activepanel") {
     update("marzban_panel", "status", "disablepanel", "name_panel", $user['Processing_value']);
@@ -2799,7 +2790,7 @@ if ($text == "🎁 وضعیت اکانت تست") {
             ],
         ]
     ]);
-    sendmessage($from_id, "📌 در این بخش می توانید مشخص نمایید  که پنل در بخش اکانت تس برای کاربر در دسترس باشد یا خیر در صورت روشن کردن این قابلیت باید وضعیت نمایش پنل را خماوش کنید", $view_Status, 'HTML');
+    sendmessage($from_id,"📌 در این بخش می توانید مشخص نمایید  که پنل در بخش اکانت تس برای کاربر در دسترس باشد یا خیر در صورت روشن کردن این قابلیت باید وضعیت نمایش پنل را خماوش کنید", $view_Status, 'HTML');
 }
 if ($datain == "ontestshowpanel") {
     update("marzban_panel", "statusTest", "offtestshowpanel", "name_panel", $user['Processing_value']);
@@ -2914,7 +2905,8 @@ if ($datain == "✅ تایید قانون روشن است") {
 //_________________________________________________
 if ($text == "👤 خدمات کاربر") {
     sendmessage($from_id, $textbotlang['users']['selectoption'], $User_Services, 'HTML');
-} #-------------------------#
+}
+#-------------------------#
 elseif ($text == "📊 وضعیت تایید شماره کاربر") {
     sendmessage($from_id, $textbotlang['Admin']['ManageUser']['GetIdUserunblock'], $backadmin, 'HTML');
     step('get_status', $from_id);
@@ -3061,26 +3053,26 @@ if (preg_match('/Confirm_pay_(\w+)/', $datain, $dataget)) {
     $Balance_id = select("user", "*", "id", $Payment_report['id_user'], "select");
     if ($Payment_report['payment_Status'] == "paid" || $Payment_report['payment_Status'] == "reject") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['Admin']['Payment']['reviewedpayment'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['Admin']['Payment']['reviewedpayment'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
         return;
     }
     DirectPayment($order_id);
-    update("user", "Processing_value", "0", "id", $Balance_id['id']);
-    update("user", "Processing_value_one", "0", "id", $Balance_id['id']);
-    update("user", "Processing_value_tow", "0", "id", $Balance_id['id']);
-    update("Payment_report", "payment_Status", "paid", "id_order", $order_id);
+    update("user","Processing_value","0", "id",$Balance_id['id']);
+    update("user","Processing_value_one","0", "id",$Balance_id['id']);
+    update("user","Processing_value_tow","0", "id",$Balance_id['id']);
+    update("Payment_report","payment_Status","paid","id_order",$order_id);
     $text_report = "📣 یک ادمین رسید پرداخت کارت به کارت را تایید کرد.
     
     اطلاعات :
     👤آیدی عددی  ادمین تایید کننده : $from_id
     💰 مبلغ پرداخت : {$Payment_report['price']}
     ";
-    if (isset($setting['Channel_Report']) && strlen($setting['Channel_Report']) > 0) {
+    if (isset($setting['Channel_Report']) &&strlen($setting['Channel_Report']) > 0) {
         sendmessage($setting['Channel_Report'], $text_report, null, 'HTML');
     }
 }
@@ -3092,11 +3084,11 @@ if (preg_match('/reject_pay_(\w+)/', $datain, $datagetr)) {
     update("user", "Processing_value_one", $id_order, "id", $from_id);
     if ($Payment_report['payment_Status'] == "reject" || $Payment_report['payment_Status'] == "paid") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => $textbotlang['Admin']['Payment']['reviewedpayment'],
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => $textbotlang['Admin']['Payment']['reviewedpayment'],
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
         return;
     }
@@ -3600,7 +3592,7 @@ if ($text == "💡 روش ساخت نام کاربری") {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['savedname'], $optionMarzban, 'HTML');
     } elseif ($listpanel['type'] == "x-ui_single") {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['savedname'], $optionX_ui_single, 'HTML');
-    } else {
+    }else{
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['savedname'], $optionMarzban, 'HTML');
     }
 }
@@ -3771,7 +3763,7 @@ if ($text == "✏️ مدیریت پنل") {
         sendmessage($from_id, $textbotlang['users']['selectoption'], $optionMarzban, 'HTML');
     } elseif ($listpanel['type'] == "x-ui_single") {
         sendmessage($from_id, $textbotlang['users']['selectoption'], $optionX_ui_single, 'HTML');
-    } else {
+    }else{
         sendmessage($from_id, $textbotlang['users']['selectoption'], $optionMarzban, 'HTML');
     }
     step('home', $from_id);
@@ -4264,11 +4256,11 @@ if ($text == "🌟 مبلغ هدیه استارت") {
     $requestcheck = select("cancel_service", "*", "username", $usernamepanel, "select");
     if ($requestcheck['status'] == "accept" || $requestcheck['status'] == "reject") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => "این درخواست توسط ادمین دیگری بررسی شده است",
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => "این درخواست توسط ادمین دیگری بررسی شده است",
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
         return;
     }
@@ -4291,11 +4283,11 @@ if ($text == "🌟 مبلغ هدیه استارت") {
     $requestcheck = select("cancel_service", "*", "username", $username, "select");
     if ($requestcheck['status'] == "accept" || $requestcheck['status'] == "reject") {
         telegram('answerCallbackQuery', array(
-                'callback_query_id' => $callback_query_id,
-                'text' => "این درخواست توسط ادمین دیگری بررسی شده است",
-                'show_alert' => true,
-                'cache_time' => 5,
-            )
+            'callback_query_id' => $callback_query_id,
+            'text' => "این درخواست توسط ادمین دیگری بررسی شده است",
+            'show_alert' => true,
+            'cache_time' => 5,
+        )
         );
         return;
     }
@@ -4338,7 +4330,7 @@ if ($text == "🌟 مبلغ هدیه استارت") {
             💰 مبلغ بازگشتی : $pricecancel تومان
             👤 نام کاربری : $username
             آیدی عددی درخواست کننده کنسل کردن : {$nameloc['id_user']}";
-    if (isset($setting['Channel_Report']) && strlen($setting['Channel_Report']) > 0) {
+    if (isset($setting['Channel_Report']) &&strlen($setting['Channel_Report']) > 0) {
         sendmessage($setting['Channel_Report'], $text_report, null, 'HTML');
     }
 }
