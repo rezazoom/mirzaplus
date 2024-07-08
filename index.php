@@ -28,17 +28,19 @@ function request_origin_ip_check(): void
         ['lower' => '149.154.160.0', 'upper' => '149.154.175.255'],
         ['lower' => '91.108.4.0', 'upper' => '91.108.7.255']
     ];
-    $ip_dec = (float)sprintf("%u", ip2long($_SERVER['REMOTE_ADDR']));
-    $ok = false;
-    foreach ($telegram_ip_ranges as $telegram_ip_range)
-        if (!$ok) {
-            $lower_dec = (float)sprintf("%u", ip2long($telegram_ip_range['lower']));
-            $upper_dec = (float)sprintf("%u", ip2long($telegram_ip_range['upper']));
-            if ($ip_dec >= $lower_dec and $ip_dec <= $upper_dec)
-                $ok = true;
+    $ip_dec = sprintf("%u", ip2long($_SERVER['REMOTE_ADDR']));
+
+    foreach ($telegram_ip_ranges as $range) {
+        $lower_dec = sprintf("%u", ip2long($range['lower']));
+        $upper_dec = sprintf("%u", ip2long($range['upper']));
+        if ($ip_dec >= $lower_dec && $ip_dec <= $upper_dec) {
+            return; // IP is within a valid range, exit the function
         }
-    if (!$ok)
-        die ("دسترسی غیرمجاز");
+    }
+
+    // If we get here, the IP is not within any of the valid ranges
+    // Request is not from Telegram Bot API server
+    die("دسترسی غیرمجاز");
 }
 
 if (TELEGRAM_IP_CHECK) request_origin_ip_check();
@@ -130,13 +132,13 @@ foreach ($datatxtbot as $item) {
     }
 }
 
-$existingCronCommands = shell_exec('crontab -l');
-$phpFilePath = "https://$domainhosts/cron/sendmessage.php";
-$cronCommand = "*/1 * * * * curl $phpFilePath";
-if (strpos($existingCronCommands, $cronCommand) === false) {
-    $command = "(crontab -l ; echo '$cronCommand') | crontab -";
-    shell_exec($command);
-}
+//$existingCronCommands = shell_exec('crontab -l');
+//$phpFilePath = "https://$domainhosts/cron/sendmessage.php";
+//$cronCommand = "*/1 * * * * curl $phpFilePath";
+//if (strpos($existingCronCommands, $cronCommand) === false) {
+//    $command = "(crontab -l ; echo '$cronCommand') | crontab -";
+//    shell_exec($command);
+//}
 #---------channel--------------#
 $tch = '';
 if (isset ($channels['link']) && $from_id != 0) {

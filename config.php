@@ -17,6 +17,7 @@ $SUID = "5522424631";
 $BOTURL = "domain.com/bot";
 $BOTUSERNAME = "marzbaninfobot";
 
+// Check if incoming IP is within Telegram's range; may impact performance.
 const TELEGRAM_IP_CHECK = false;
 
 const DBOPTIONS = [
