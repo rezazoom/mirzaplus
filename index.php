@@ -40,7 +40,8 @@ function request_origin_ip_check(): void
 
     // If we get here, the IP is not within any of the valid ranges
     // Request is not from Telegram Bot API server
-    die("دسترسی غیرمجاز");
+    http_response_code(403);
+    die('Forbidden');
 }
 
 if (TELEGRAM_IP_CHECK) request_origin_ip_check();
