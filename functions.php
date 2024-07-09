@@ -70,6 +70,7 @@ function select($table, $field, $whereField = null, $whereValue = null, $type = 
             return $stmt->fetch(PDO::FETCH_ASSOC);
         }
     } catch (PDOException $e) {
+        send_admin_notice("Query failed: " . $e->getMessage());
         die("Query failed: " . $e->getMessage());
     }
 }

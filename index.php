@@ -46,6 +46,13 @@ function request_origin_ip_check(): void
 
 if (TELEGRAM_IP_CHECK) request_origin_ip_check();
 
+function send_admin_notice($msg = "DEBUG!"): void
+{
+    global $SUID;
+    sendmessage($SUID, sprintf("<pre>[%s]</pre> <code>%s</code>", date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']), $msg), null, 'html');
+}
+
+
 #-------------Variable----------#
 $users_ids = select("user", "id", null, null, "FETCH_COLUMN");
 $setting = select("setting", "*");
