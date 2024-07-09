@@ -80,9 +80,10 @@ if ($from_id != "0") {
     $stmt->bindParam(':username', $username, PDO::PARAM_STR);
     $stmt->execute();
 }
-$user = select("user", "*", "id", $from_id, "select");
-if ($user == false) {
-    $user = array();
+
+$user = select("user", "*", "id", $from_id);
+
+if (!$user) {
     $user = array(
         'step' => '',
         'Processing_value' => '',
@@ -1245,7 +1246,7 @@ if ($text == $datatextbot['text_account']) {
     sendmessage($from_id, $text_account, $keyboardPanel, 'HTML');
 }
 if ($text == $datatextbot['text_sell']) {
-    $locationproduct = select("marzban_panel", "*", "status", "activepanel", "count");
+    $locationproduct = select("marzban_panel", "*", null, null, "count");
     if ($locationproduct == 0) {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['nullpanel'], null, 'HTML');
         return;
