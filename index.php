@@ -49,6 +49,8 @@ if (TELEGRAM_IP_CHECK) request_origin_ip_check();
 #-------------Variable----------#
 $users_ids = select("user", "id", null, null, "FETCH_COLUMN");
 $setting = select("setting", "*");
+$admin_ids = select("admin", "id_admin", null, null, "FETCH_COLUMN");
+
 if (!in_array($from_id, $users_ids) && intval($from_id) != 0) {
     $Response = json_encode([
         'inline_keyboard' => [
@@ -57,13 +59,10 @@ if (!in_array($from_id, $users_ids) && intval($from_id) != 0) {
             ]
         ]
     ]);
-    $newuser = "
-    🎉یک کاربر جدید ربات را استارت کرد
-نام : $first_name
-نام کاربری : @$username
-آیدی عددی : <a href = \"tg://user?id=$from_id\">$from_id</a>";
+    $new_user_notice = "🎉 — یک کاربر جدید ربات را استارت کرد.\n\nنام: {$first_name}\nنام کاربری: @{$username}\nآی‌دی عددی: {$from_id}";
+
     foreach ($admin_ids as $admin) {
-        sendmessage($admin, $newuser, $Response, 'html');
+        sendmessage($admin, $new_user_notice, $Response, 'html');
     }
 }
 
@@ -88,12 +87,10 @@ if ($user == false) {
     );
 }
 
-$channels = array();
 $helpdata = select("help", "*");
 $datatextbotget = select("textbot", "*", null, null, "fetchAll");
 $id_invoice = select("invoice", "id_invoice", null, null, "FETCH_COLUMN");
 $channels = select("channels", "*");
-$admin_ids = select("admin", "id_admin", null, null, "FETCH_COLUMN");
 $usernameinvoice = select("invoice", "username", null, null, "FETCH_COLUMN");
 $code_Discount = select("Discount", "code", null, null, "FETCH_COLUMN");
 $users_ids = select("user", "id", null, null, "FETCH_COLUMN");
@@ -127,6 +124,7 @@ $datatextbot = array(
     'text_Tariff_list' => '',
     'text_dec_Tariff_list' => '',
 );
+
 foreach ($datatxtbot as $item) {
     if (isset ($datatextbot[$item['id_text']])) {
         $datatextbot[$item['id_text']] = $item['text'];
@@ -140,6 +138,7 @@ foreach ($datatxtbot as $item) {
 //    $command = "(crontab -l ; echo '$cronCommand') | crontab -";
 //    shell_exec($command);
 //}
+
 #---------channel--------------#
 $tch = '';
 if (isset ($channels['link']) && $from_id != 0) {
@@ -149,13 +148,11 @@ if (isset ($channels['link']) && $from_id != 0) {
 if ($user['username'] == "none" || $user['username'] == null) {
     update("user", "username", $username, "id", $from_id);
 }
+
 #-----------User_Status------------#
 if ($user['User_Status'] == "block") {
-    $textblock = "
-                   🚫 شما از طرف مدیریت بلاک شده اید.
-                    
-                ✍️ دلیل مسدودی: {$user['description_blocking']}
-                    ";
+    $textblock = "🚫--  شما از طرف مدیریت بلاک شده اید.
+                ✍️ دلیل مسدودی: {$user['description_blocking']}";
     sendmessage($from_id, $textblock, null, 'html');
     return;
 }
@@ -1237,8 +1234,7 @@ if ($text == $datatextbot['text_account']) {
 🛍 تعداد سرویس های خریداری شده : $countorder
 🤝 تعداد زیر مجموعه های شما : {$user['affiliatescount']} نفر
     
-📆 $dateacc → ⏰ $timeacc
-                ";
+📆 $dateacc → ⏰ $timeacc";
     sendmessage($from_id, $text_account, $keyboardPanel, 'HTML');
 }
 if ($text == $datatextbot['text_sell']) {
@@ -1253,16 +1249,20 @@ if ($text == $datatextbot['text_sell']) {
     }
     if ($user['number'] == "none" && $setting['get_number'] == "✅ تایید شماره موبایل روشن است")
         return;
-    #-----------------------#
+    #------------ BUY BUTTON -----------#
     if ($locationproduct == 1) {
+
         $nullproduct = select("product", "*", null, null, "count");
+
         if ($nullproduct == 0) {
             sendmessage($from_id, $textbotlang['Admin']['Product']['nullpProduct'], null, 'HTML');
             return;
         }
+
         $product = [];
         $location = select("marzban_panel", "*", null, null, "select");
         $stmt = $pdo->prepare("SELECT * FROM product WHERE Location = :location OR Location = '/all'");
+
         $stmt->bindParam(':location', $location['name_panel'], PDO::PARAM_STR);
         $stmt->execute();
         $product = ['inline_keyboard' => []];
