@@ -1,10 +1,9 @@
 <?php
 
 ini_set('error_log', 'error_log');
+date_default_timezone_set('Asia/Tehran');
 
 $version = "0.0.1";
-
-date_default_timezone_set('Asia/Tehran');
 
 require_once 'config.php';
 require_once 'botapi.php';
@@ -43,7 +42,6 @@ function request_origin_ip_check(): void
     http_response_code(403);
     die('Forbidden');
 }
-
 if (TELEGRAM_IP_CHECK) request_origin_ip_check();
 
 function send_admin_notice($msg = "DEBUG!"): void
@@ -54,11 +52,18 @@ function send_admin_notice($msg = "DEBUG!"): void
 
 
 #-------------Variable----------#
-$users_ids = select("user", "id", null, null, "FETCH_COLUMN");
-$setting = select("setting", "*");
-$admin_ids = select("admin", "id_admin", null, null, "FETCH_COLUMN");
 
-if (!in_array($from_id, $users_ids) && intval($from_id) != 0) {
+// Fetches all users IDs
+$users_id_list = select("user", "id", null, null, "FETCH_COLUMN");
+
+// Fetches all settings
+$setting = select("setting", "*");
+
+// Fetches all admins IDs
+$admins_id_list = select("admin", "id_admin", null, null, "FETCH_COLUMN");
+
+
+if (!in_array($from_id, $users_id_list) && intval($from_id) != 0) {
     $Response = json_encode([
         'inline_keyboard' => [
             [
@@ -68,11 +73,12 @@ if (!in_array($from_id, $users_ids) && intval($from_id) != 0) {
     ]);
     $new_user_notice = "🎉 — یک کاربر جدید ربات را استارت کرد.\n\nنام: {$first_name}\nنام کاربری: @{$username}\nآی‌دی عددی: {$from_id}";
 
-    foreach ($admin_ids as $admin) {
+    foreach ($admins_id_list as $admin) {
         sendmessage($admin, $new_user_notice, $Response, 'html');
     }
 }
 
+// Add user to the database
 if ($from_id != "0") {
     $stmt = $pdo->prepare("INSERT IGNORE INTO user (id, step, limit_usertest, User_Status, number, Balance, pagenumber, username, message_count, last_message_time, affiliatescount, affiliates) VALUES (:from_id, 'none', :limit_usertest_all, 'Active', 'none', '0', '1', :username, '0', '0', '0', '0')");
     $stmt->bindParam(':from_id', $from_id);
@@ -81,6 +87,7 @@ if ($from_id != "0") {
     $stmt->execute();
 }
 
+// Select the user
 $user = select("user", "*", "id", $from_id);
 
 if (!$user) {
@@ -95,20 +102,20 @@ if (!$user) {
     );
 }
 
-$helpdata = select("help", "*");
-$datatextbotget = select("textbot", "*", null, null, "fetchAll");
-$id_invoice = select("invoice", "id_invoice", null, null, "FETCH_COLUMN");
+$help_data = select("help", "*");
+$invoices_id_list = select("invoice", "id_invoice", null, null, "FETCH_COLUMN");
+$invoices_username_list = select("invoice", "username", null, null, "FETCH_COLUMN");
 $channels = select("channels", "*");
-$usernameinvoice = select("invoice", "username", null, null, "FETCH_COLUMN");
-$code_Discount = select("Discount", "code", null, null, "FETCH_COLUMN");
-$users_ids = select("user", "id", null, null, "FETCH_COLUMN");
-$marzban_list = select("marzban_panel", "name_panel", null, null, "FETCH_COLUMN");
-$name_product = select("product", "name_product", null, null, "FETCH_COLUMN");
-$SellDiscount = select("DiscountSell", "codeDiscount", null, null, "FETCH_COLUMN");
+$discount_codes_list = select("Discount", "code", null, null, "FETCH_COLUMN");
+$marzban_panels_names_list = select("marzban_panel", "name_panel", null, null, "FETCH_COLUMN");
+$product_names_list = select("product", "name_product", null, null, "FETCH_COLUMN");
+$sell_discount_codes_list = select("DiscountSell", "codeDiscount", null, null, "FETCH_COLUMN");
 $ManagePanel = new ManagePanel();
-$datatxtbot = array();
-foreach ($datatextbotget as $row) {
-    $datatxtbot[] = array(
+
+$bot_strings = select("textbot", "*", null, null, "fetchAll");
+$bot_texts = array();
+foreach ($bot_strings as $row) {
+    $bot_texts[] = array(
         'id_text' => $row['id_text'],
         'text' => $row['text']
     );
@@ -133,7 +140,7 @@ $datatextbot = array(
     'text_dec_Tariff_list' => '',
 );
 
-foreach ($datatxtbot as $item) {
+foreach ($bot_texts as $item) {
     if (isset ($datatextbot[$item['id_text']])) {
         $datatextbot[$item['id_text']] = $item['text'];
     }
@@ -164,20 +171,25 @@ if ($user['User_Status'] == "block") {
     sendmessage($from_id, $textblock, null, 'html');
     return;
 }
-if (strpos($text, "/start ") !== false) {
+
+if (str_contains($text, "/start ")) {
     if ($user['affiliates'] != 0) {
         sendmessage($from_id, "❌ شما زیرمجموعه کاربر {$user['affiliates']} هستید و نمی توانید زیر مجموعه کاربری دیگه ای باشید", null, 'html');
         return;
     }
-    $affiliatesvalue = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
-    if ($affiliatesvalue == "offaffiliates") {
+
+    $affiliates_value = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
+
+    if ($affiliates_value == "offaffiliates") {
         sendmessage($from_id, $textbotlang['users']['affiliates']['offaffiliates'], $keyboard, 'HTML');
         return;
     }
+
     $affiliatesid = str_replace("/start ", "", $text);
+
     if (!ctype_digit($affiliatesid))
         return;
-    if (!in_array($affiliatesid, $users_ids)) {
+    if (!in_array($affiliatesid, $users_id_list)) {
         sendmessage($from_id, $textbotlang['users']['affiliates']['affiliatesyou'], null, 'html');
         return;
     }
@@ -185,28 +197,30 @@ if (strpos($text, "/start ") !== false) {
         sendmessage($from_id, $textbotlang['users']['affiliates']['invalidaffiliates'], null, 'html');
         return;
     }
-    $marzbanDiscountaffiliates = select("affiliates", "*", null, null, "select");
-    if ($marzbanDiscountaffiliates['Discount'] == "onDiscountaffiliates") {
-        $marzbanDiscountaffiliates = select("affiliates", "*", null, null, "select");
+    $marzbanDiscountAffiliates = select("affiliates", "*", null, null, "select");
+    if ($marzbanDiscountAffiliates['Discount'] == "onDiscountaffiliates") {
+        $marzbanDiscountAffiliates = select("affiliates", "*", null, null, "select");
         $Balance_user = select("user", "*", "id", $affiliatesid, "select");
-        $Balance_add_user = $Balance_user['Balance'] + $marzbanDiscountaffiliates['price_Discount'];
+        $Balance_add_user = $Balance_user['Balance'] + $marzbanDiscountAffiliates['price_Discount'];
         update("user", "Balance", $Balance_add_user, "id", $affiliatesid);
-        $addbalancediscount = number_format($marzbanDiscountaffiliates['price_Discount'], 0);
+        $addbalancediscount = number_format($marzbanDiscountAffiliates['price_Discount'], 0);
         sendmessage($affiliatesid, "🎁 مبلغ $addbalancediscount به موجودی شما از طرف زیر مجموعه با شناسه کاربری $from_id اضافه گردید.", null, 'html');
     }
     sendmessage($from_id, $datatextbot['text_start'], $keyboard, 'html');
-    $useraffiliates = select("user", "*", "id", $affiliatesid, "select");
-    $addcountaffiliates = intval($useraffiliates['affiliatescount']) + 1;
+    $user_affiliates = select("user", "*", "id", $affiliatesid, "select");
+    $new_user_affiliates_count = intval($user_affiliates['affiliatescount']) + 1;
     update("user", "affiliates", $affiliatesid, "id", $from_id);
-    update("user", "affiliatescount", $addcountaffiliates, "id", $affiliatesid);
+    update("user", "affiliatescount", $new_user_affiliates_count, "id", $affiliatesid);
 }
-$timebot = time();
-$TimeLastMessage = $timebot - intval($user['last_message_time']);
+
+# --- Anti spam --- #
+$run_time = time();
+$TimeLastMessage = $run_time - intval($user['last_message_time']);
 if (floor($TimeLastMessage / 60) >= 1) {
-    update("user", "last_message_time", $timebot, "id", $from_id);
+    update("user", "last_message_time", $run_time, "id", $from_id);
     update("user", "message_count", "1", "id", $from_id);
 } else {
-    if (!in_array($from_id, $admin_ids)) {
+    if (!in_array($from_id, $admins_id_list)) {
         $addmessage = intval($user['message_count']) + 1;
         update("user", "message_count", $addmessage, "id", $from_id);
         if ($user['message_count'] >= "35") {
@@ -218,7 +232,9 @@ if (floor($TimeLastMessage / 60) >= 1) {
         }
 
     }
-}#-----------Channel------------#
+}
+
+#-----------Channel------------#
 if ($datain == "confirmchannel") {
     if (!in_array($tch, ['member', 'creator', 'administrator'])) {
         telegram('answerCallbackQuery', array(
@@ -234,12 +250,12 @@ if ($datain == "confirmchannel") {
     }
     return;
 }
-if ($channels == false) {
+if (!$channels) {
     unset($channels);
     $channels['Channel_lock'] = "off";
     $channels['link'] = $textbotlang['users']['channel']['link'];
 }
-if (!in_array($tch, ['member', 'creator', 'administrator']) && $channels['Channel_lock'] == "on" && !in_array($from_id, $admin_ids)) {
+if (!in_array($tch, ['member', 'creator', 'administrator']) && $channels['Channel_lock'] == "on" && !in_array($from_id, $admins_id_list)) {
     $link_channel = json_encode([
         'inline_keyboard' => [
             [
@@ -253,23 +269,25 @@ if (!in_array($tch, ['member', 'creator', 'administrator']) && $channels['Channe
     sendmessage($from_id, $datatextbot['text_channel'], $link_channel, 'html');
     return;
 }
-#-----------roll------------#
-if ($setting['roll_Status'] == "✅ تایید قانون روشن است" && $user['roll_Status'] == 0 && $text != "✅ قوانین را می پذیرم" && !in_array($from_id, $admin_ids)) {
+
+# --- Rules --- #
+if ($setting['roll_Status'] == "✅ تایید قانون روشن است" && $user['roll_Status'] == 0 && $text != "✅ قوانین را می پذیرم" && !in_array($from_id, $admins_id_list)) {
     sendmessage($from_id, $datatextbot['text_roll'], $confrimrolls, 'html');
     return;
 }
 if ($text == "✅ قوانین را می پذیرم") {
     sendmessage($from_id, $textbotlang['users']['Rules'], $keyboard, 'html');
-    $confrim = true;
-    update("user", "roll_Status", $confrim, "id", $from_id);
+    $is_user_accepted_rules = true;
+    update("user", "roll_Status", $is_user_accepted_rules, "id", $from_id);
 }
 
-#-----------Bot_Status------------#
-if ($setting['Bot_Status'] == "❌ ربات خاموش است" && !in_array($from_id, $admin_ids)) {
+# --- Bot Status --- #
+if ($setting['Bot_Status'] == "❌ ربات خاموش است" && !in_array($from_id, $admins_id_list)) {
     sendmessage($from_id, $datatextbot['text_bot_off'], null, 'html');
     return;
 }
-#-----------/start------------#
+
+# --- Start Command --- #
 if ($text == "/start") {
     update("user", "Processing_value", "0", "id", $from_id);
     update("user", "Processing_value_one", "0", "id", $from_id);
@@ -278,18 +296,22 @@ if ($text == "/start") {
     step('home', $from_id);
     return;
 }
-#-----------back------------#
+
+# --- Back Button --- #
 if ($text == "🏠 بازگشت به منوی اصلی" || $datain == "backuser") {
     update("user", "Processing_value", "0", "id", $from_id);
     update("user", "Processing_value_one", "0", "id", $from_id);
     update("user", "Processing_value_tow", "0", "id", $from_id);
+
     if ($datain == "backuser")
         deletemessage($from_id, $message_id);
+
     sendmessage($from_id, $textbotlang['users']['back'], $keyboard, 'html');
     step('home', $from_id);
     return;
 }
-#-----------get_number------------#
+
+# -- Get Number --- #
 if ($user['step'] == 'get_number') {
     if (empty ($user_phone)) {
         sendmessage($from_id, $textbotlang['users']['number']['false'], $request_contact, 'html');
@@ -308,34 +330,43 @@ if ($user['step'] == 'get_number') {
     step('home', $from_id);
 }
 
-#-----------Purchased services------------#
+# --- Purchased Services --- #
 if ($text == $datatextbot['text_Purchased_services'] || $datain == "backorder") {
+
     $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = :id_user AND status = 'active'");
     $stmt->bindParam(':id_user', $from_id);
     $stmt->execute();
     $invoices = $stmt->rowCount();
+
     if ($invoices == 0 && $setting['NotUser'] == "offnotuser") {
         sendmessage($from_id, $textbotlang['users']['sell']['service_not_available'], null, 'html');
         return;
     }
+
     update("user", "pagenumber", "1", "id", $from_id);
+
     $page = 1;
-    $items_per_page = 5;
+    $items_per_page = 8;
     $start_index = ($page - 1) * $items_per_page;
+
     $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = :id_user AND status = 'active' ORDER BY username ASC LIMIT $start_index, $items_per_page");
+
     $stmt->bindParam(':id_user', $from_id);
     $stmt->execute();
-    $keyboardlists = [
+
+    $inline_key_list = [
         'inline_keyboard' => [],
     ];
+
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $keyboardlists['inline_keyboard'][] = [
+        $inline_key_list['inline_keyboard'][] = [
             [
-                'text' => "⭕️" . $row['username'] . "⭕️",
+                'text' => "«" . $row['username'] . "»",
                 'callback_data' => "product_" . $row['username']
             ],
         ];
     }
+
     $pagination_buttons = [
         [
             'text' => $textbotlang['users']['page']['next'],
@@ -346,29 +377,37 @@ if ($text == $datatextbot['text_Purchased_services'] || $datain == "backorder") 
             'callback_data' => 'previous_page'
         ]
     ];
-    $keyboardlists['inline_keyboard'][] = $pagination_buttons;
-    $keyboard_json = json_encode($keyboardlists);
+
+    $inline_key_list['inline_keyboard'][] = $pagination_buttons;
+    $keyboard_json = json_encode($inline_key_list);
+
     if ($datain == "backorder") {
         Editmessagetext($from_id, $message_id, $textbotlang['users']['sell']['service_sell'], $keyboard_json);
     } else {
         sendmessage($from_id, $textbotlang['users']['sell']['service_sell'], $keyboard_json, 'html');
     }
+
     if ($setting['NotUser'] == "onnotuser") {
         sendmessage($from_id, $textbotlang['users']['stateus']['notUsername'], $NotProductUser, 'html');
     }
 }
+
 if ($text == "⭕️ نام کاربری من در لیست نیست ⭕️") {
     sendmessage($from_id, $textbotlang['users']['stateus']['SendUsername'], $backuser, 'html');
     step('getusernameinfo', $from_id);
 }
+
 if ($user['step'] == "getusernameinfo") {
+
     if (!preg_match('/^\w{3,32}$/', $text)) {
         sendmessage($from_id, $textbotlang['users']['stateus']['Invalidusername'], $backuser, 'html');
         return;
     }
+
     update("user", "Processing_value", $text, "id", $from_id);
     sendmessage($from_id, $textbotlang['users']['Service']['Location'], $list_marzban_panel_user, 'html');
     step('getdata', $from_id);
+
 } elseif (preg_match('/locationnotuser_(.*)/', $datain, $dataget)) {
     $locationid = $dataget[1];
     $marzban_list_get = select("marzban_panel", "name_panel", "id", $locationid, "select");
@@ -381,8 +420,10 @@ if ($user['step'] == "getusernameinfo") {
             return;
         }
     }
-    #-------------[ status ]----------------#
+
+    # --- Account Status --- #
     $status = $DataUserOut['status'];
+
     $status_var = [
         'active' => $textbotlang['users']['stateus']['active'],
         'limited' => $textbotlang['users']['stateus']['limited'],
@@ -390,6 +431,7 @@ if ($user['step'] == "getusernameinfo") {
         'expired' => $textbotlang['users']['stateus']['expired'],
         'on_hold' => $textbotlang['users']['stateus']['onhold']
     ][$status];
+
     #--------------[ expire ]---------------#
     $expirationDate = $DataUserOut['expire'] ? jdate('Y/m/d', $DataUserOut['expire']) : $textbotlang['users']['stateus']['Unlimited'];
     #-------------[ data_limit ]----------------#
@@ -438,6 +480,7 @@ if ($user['step'] == "getusernameinfo") {
             ]
         ]
     ]);
+
     sendmessage($from_id, $textbotlang['users']['stateus']['info'], $keyboardinfo, 'html');
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'html');
     step('home', $from_id);
@@ -445,28 +488,35 @@ if ($user['step'] == "getusernameinfo") {
 if ($datain == 'next_page') {
     $numpage = select("invoice", "id_user", "id_user", $from_id, "count");
     $page = $user['pagenumber'];
-    $items_per_page = 5;
+    $items_per_page = 8;
+
     $sum = $user['pagenumber'] * $items_per_page;
+
     if ($sum > $numpage) {
         $next_page = 1;
     } else {
         $next_page = $page + 1;
     }
+
     $start_index = ($next_page - 1) * $items_per_page;
+
     $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = :id_user AND status = 'active' ORDER BY username ASC LIMIT $start_index, $items_per_page");
     $stmt->bindParam(':id_user', $from_id);
     $stmt->execute();
-    $keyboardlists = [
+
+    $inline_key_list = [
         'inline_keyboard' => [],
     ];
+
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $keyboardlists['inline_keyboard'][] = [
+        $inline_key_list['inline_keyboard'][] = [
             [
-                'text' => "⭕️" . $row['username'] . "⭕️",
+                'text' => "«" . $row['username'] . "»",
                 'callback_data' => "product_" . $row['username']
             ],
         ];
     }
+
     $pagination_buttons = [
         [
             'text' => $textbotlang['users']['page']['next'],
@@ -477,13 +527,14 @@ if ($datain == 'next_page') {
             'callback_data' => 'previous_page'
         ]
     ];
-    $keyboardlists['inline_keyboard'][] = $pagination_buttons;
-    $keyboard_json = json_encode($keyboardlists);
+
+    $inline_key_list['inline_keyboard'][] = $pagination_buttons;
+    $keyboard_json = json_encode($inline_key_list);
     update("user", "pagenumber", $next_page, "id", $from_id);
     Editmessagetext($from_id, $message_id, $text, $keyboard_json);
 } elseif ($datain == 'previous_page') {
     $page = $user['pagenumber'];
-    $items_per_page = 5;
+    $items_per_page = 8;
     if ($user['pagenumber'] <= 1) {
         $next_page = 1;
     } else {
@@ -493,17 +544,20 @@ if ($datain == 'next_page') {
     $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = :id_user AND status = 'active' ORDER BY username ASC LIMIT $start_index, $items_per_page");
     $stmt->bindParam(':id_user', $from_id);
     $stmt->execute();
-    $keyboardlists = [
+
+    $inline_key_list = [
         'inline_keyboard' => [],
     ];
+
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $keyboardlists['inline_keyboard'][] = [
+        $inline_key_list['inline_keyboard'][] = [
             [
-                'text' => "⭕️" . $row['username'] . "⭕️",
+                'text' => "«" . $row['username'] . "»",
                 'callback_data' => "product_" . $row['username']
             ],
         ];
     }
+
     $pagination_buttons = [
         [
             'text' => $textbotlang['users']['page']['next'],
@@ -514,8 +568,9 @@ if ($datain == 'next_page') {
             'callback_data' => 'previous_page'
         ]
     ];
-    $keyboardlists['inline_keyboard'][] = $pagination_buttons;
-    $keyboard_json = json_encode($keyboardlists);
+
+    $inline_key_list['inline_keyboard'][] = $pagination_buttons;
+    $keyboard_json = json_encode($inline_key_list);
     update("user", "pagenumber", $next_page, "id", $from_id);
     Editmessagetext($from_id, $message_id, $text, $keyboard_json);
 }
@@ -533,15 +588,15 @@ if (preg_match('/product_(\w+)/', $datain, $dataget)) {
         return;
     }
     if ($DataUserOut['online_at'] == "online") {
-        $lastonline = $textbotlang['users']['online'];
+        $last_online = $textbotlang['users']['online'];
     } elseif ($DataUserOut['online_at'] == "offline") {
-        $lastonline = $textbotlang['users']['offline'];
+        $last_online = $textbotlang['users']['offline'];
     } else {
-        if (isset($DataUserOut['online_at']) && $DataUserOut['online_at'] !== null) {
+        if (isset($DataUserOut['online_at'])) {
             $dateString = $DataUserOut['online_at'];
-            $lastonline = jdate('Y/m/d h:i:s', strtotime($dateString));
+            $last_online = jdate('Y/m/d h:i:s', strtotime($dateString));
         } else {
-            $lastonline = $textbotlang['users']['stateus']['notconnected'];
+            $last_online = $textbotlang['users']['stateus']['notconnected'];
         }
     }
     #-------------status----------------#
@@ -590,7 +645,7 @@ if (preg_match('/product_(\w+)/', $datain, $dataget)) {
 لوکیشن :{$nameloc['Service_location']}
 کد سرویس:{$nameloc['id_invoice']}
     
-🟢 اخرین زمان اتصال شما : $lastonline
+🟢 اخرین زمان اتصال شما : $last_online
     
 📥 حجم مصرفی : $usedTrafficGb
 ♾ حجم سرویس : $LastTraffic
@@ -983,7 +1038,7 @@ if (preg_match('/subscriptionurl_(\w+)/', $datain, $dataget)) {
             ],
         ]
     ]);
-    foreach ($admin_ids as $admin) {
+    foreach ($admins_id_list as $admin) {
         sendmessage($admin, $textinfoadmin, $confirmremoveadmin, 'html');
         step('home', $admin);
     }
@@ -1058,7 +1113,7 @@ if ($user['step'] == "createusertest" || preg_match('/locationtests_(.*)/', $dat
 {$dataoutput['msg']}
 آیدی کابر : $from_id
 نام کاربری کاربر : @$username";
-        foreach ($admin_ids as $admin) {
+        foreach ($admins_id_list as $admin) {
             sendmessage($admin, $texterros, null, 'html');
         }
         step('home', $from_id);
@@ -1168,14 +1223,14 @@ if ($text == $datatextbot['text_help'] || $datain == "helpbtn") {
     sendmessage($from_id, $textbotlang['users']['selectoption'], $json_list_help, 'HTML');
     step('sendhelp', $from_id);
 } elseif ($user['step'] == "sendhelp") {
-    $helpdata = select("help", "*", "name_os", $text, "select");
-    if (strlen($helpdata['Media_os']) != 0) {
-        if ($helpdata['type_Media_os'] == "video") {
-            sendvideo($from_id, $helpdata['Media_os'], $helpdata['Description_os']);
-        } elseif ($helpdata['type_Media_os'] == "photo")
-            sendphoto($from_id, $helpdata['Media_os'], $helpdata['Description_os']);
+    $help_data = select("help", "*", "name_os", $text, "select");
+    if (strlen($help_data['Media_os']) != 0) {
+        if ($help_data['type_Media_os'] == "video") {
+            sendvideo($from_id, $help_data['Media_os'], $help_data['Description_os']);
+        } elseif ($help_data['type_Media_os'] == "photo")
+            sendphoto($from_id, $help_data['Media_os'], $help_data['Description_os']);
     } else {
-        sendmessage($from_id, $helpdata['Description_os'], $json_list_help, 'HTML');
+        sendmessage($from_id, $help_data['Description_os'], $json_list_help, 'HTML');
     }
 }
 
@@ -1194,7 +1249,7 @@ if ($text == $datatextbot['text_support']) {
             ],
         ]
     ]);
-    foreach ($admin_ids as $id_admin) {
+    foreach ($admins_id_list as $id_admin) {
         if ($text) {
             $textsendadmin = "
 📥 یک پیام از کاربر دریافت شد برای پاسخ روی دکمه زیر کلیک کنید  و پیام خود را ارسال کنید.
@@ -1408,10 +1463,10 @@ if ($text == $datatextbot['text_sell']) {
     }
     $DataUserOut = $ManagePanel->DataUser($marzban_list_get['name_panel'], $username_ac);
     $random_number = random_int(1000000, 9999999);
-    if (isset ($DataUserOut['username']) || in_array($username_ac, $usernameinvoice)) {
+    if (isset ($DataUserOut['username']) || in_array($username_ac, $invoices_username_list)) {
         $username_ac = $random_number . $username_ac;
     }
-    if (in_array($randomString, $id_invoice)) {
+    if (in_array($randomString, $invoices_id_list)) {
         $randomString = $random_number . $randomString;
     }
     $sql = "INSERT IGNORE INTO invoice (id_user, id_invoice, username, time_sell, Service_location, name_product, price_product, Volume, Service_time, Status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -1448,7 +1503,7 @@ if ($text == $datatextbot['text_sell']) {
 {$dataoutput['msg']}
 آیدی کابر : $from_id
 نام کاربری کاربر : @$username";
-        foreach ($admin_ids as $admin) {
+        foreach ($admins_id_list as $admin) {
             sendmessage($admin, $texterros, null, 'HTML');
         }
         step('home', $from_id);
@@ -1562,7 +1617,7 @@ $link_config
     step('getcodesellDiscount', $from_id);
     deletemessage($from_id, $message_id);
 } elseif ($user['step'] == "getcodesellDiscount") {
-    if (!in_array($text, $SellDiscount)) {
+    if (!in_array($text, $sell_discount_codes_list)) {
         sendmessage($from_id, $textbotlang['users']['Discount']['notcode'], $backuser, 'HTML');
         return;
     }
@@ -1786,7 +1841,7 @@ if ($text == $datatextbot['text_Add_Balance']) {
             $text_error = $pay->message;
             sendmessage($from_id, $textbotlang['users']['Balance']['errorLinkPayment'], $keyboard, 'HTML');
             step('home', $from_id);
-            foreach ($admin_ids as $admin) {
+            foreach ($admins_id_list as $admin) {
                 $ErrorsLinkPayment = "
 ⭕️ یک کاربر قصد پرداخت داشت که ساخت لینک پرداخت  با خطا مواجه شده و به کاربر لینک داده نشد
 ✍️ دلیل خطا : $text_error
@@ -1870,7 +1925,7 @@ if ($user['step'] == "getvcodeuser") {
     }
     if (isset ($errorMessage)) {
         sendmessage($from_id, $textbotlang['users']['perfectmoney']['errors'], null, 'HTML');
-        foreach ($admin_ids as $id_admin) {
+        foreach ($admins_id_list as $id_admin) {
             $texterrors = "";
             sendmessage($id_admin, "❌ یک کاربر قصد افزایش موجودی با ووچر را داشته اما با خطا مواجه شده است 
     
@@ -2031,7 +2086,7 @@ if (preg_match('/Confirmpay_user_(\w+)_(\w+)/', $datain, $dataget)) {
             
 توضیحات: $caption
 ✍️ در صورت درست بودن رسید پرداخت را تایید نمایید.";
-    foreach ($admin_ids as $id_admin) {
+    foreach ($admins_id_list as $id_admin) {
         telegram('sendphoto', [
             'chat_id' => $id_admin,
             'photo' => $photoid,
@@ -2048,7 +2103,7 @@ if ($datain == "Discount") {
     sendmessage($from_id, $textbotlang['users']['Discount']['getcode'], $backuser, 'HTML');
     step('get_code_user', $from_id);
 } elseif ($user['step'] == "get_code_user") {
-    if (!in_array($text, $code_Discount)) {
+    if (!in_array($text, $discount_codes_list)) {
         sendmessage($from_id, $textbotlang['users']['Discount']['notcode'], null, 'HTML');
         return;
     }
@@ -2094,8 +2149,8 @@ if ($datain == "colselist") {
     sendmessage($from_id, $textbotlang['users']['back'], $keyboard, 'HTML');
 }
 if ($text == "👥 زیر مجموعه گیری") {
-    $affiliatesvalue = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
-    if ($affiliatesvalue == "offaffiliates") {
+    $affiliates_value = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
+    if ($affiliates_value == "offaffiliates") {
         sendmessage($from_id, $textbotlang['users']['affiliates']['offaffiliates'], $keyboard, 'HTML');
         return;
     }
@@ -2133,10 +2188,10 @@ if ($text == "👥 زیر مجموعه گیری") {
 
 #----------------[  admin section  ]------------------#
 $textadmin = ["panel", "/panel", "پنل مدیریت", "ادمین"];
-if (!in_array($from_id, $admin_ids)) {
+if (!in_array($from_id, $admins_id_list)) {
     if (in_array($text, $textadmin)) {
         sendmessage($from_id, $textbotlang['users']['Invalid-comment'], null, 'HTML');
-        foreach ($admin_ids as $admin) {
+        foreach ($admins_id_list as $admin) {
             $textadmin = "
                 مدیر عزیز یک کاربر قصد ورود به پنل ادمین را داشت 
         نام کاربری : @$username
@@ -2204,7 +2259,7 @@ if ($text == "❌ حذف ادمین") {
     sendmessage($from_id, $textbotlang['Admin']['manageadmin']['getid'], $backadmin, 'HTML');
     step('deleteadmin', $from_id);
 } elseif ($user['step'] == "deleteadmin") {
-    if (!is_numeric($text) || !in_array($text, $admin_ids))
+    if (!is_numeric($text) || !in_array($text, $admins_id_list))
         return;
     sendmessage($from_id, $textbotlang['Admin']['manageadmin']['removedadmin'], $keyboardadmin, 'HTML');
     $stmt = $pdo->prepare("DELETE FROM admin WHERE id_admin = ?");
@@ -2216,7 +2271,7 @@ if ($text == "➕ محدودیت ساخت اکانت تست برای کاربر"
     sendmessage($from_id, $textbotlang['Admin']['manageusertest']['getidlimit'], $backadmin, 'HTML');
     step('add_limit_usertest_foruser', $from_id);
 } elseif ($user['step'] == "add_limit_usertest_foruser") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -2348,8 +2403,8 @@ if ($text == "🔌 وضعیت اتصال پنل") {
 }
 if ($text == "📜 مشاهده لیست ادمین ها") {
     $List_admin = null;
-    $admin_ids = array_filter($admin_ids);
-    foreach ($admin_ids as $admin) {
+    $admins_id_list = array_filter($admins_id_list);
+    foreach ($admins_id_list as $admin) {
         $List_admin .= "$admin\n";
     }
     $list_admin_text = "👨‍🔧 آیدی عددی ادمین ها: 
@@ -2361,7 +2416,7 @@ if ($text == "🖥  اضافه کردن پنل") {
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['addpanelname'], $backadmin, 'HTML');
     step('add_name_panel', $from_id);
 } elseif ($user['step'] == "add_name_panel") {
-    if (in_array($text, $marzban_list)) {
+    if (in_array($text, $marzban_panels_names_list)) {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['Repeatpanel'], $backadmin, 'HTML');
         return;
     }
@@ -2628,7 +2683,7 @@ if ($text == "✍️ ارسال پیام برای یک کاربر") {
     sendmessage($from_id, $textbotlang['Admin']['ManageUser']['GetIDMessage'], $backadmin, 'HTML');
     step('sendmessagetid', $from_id);
 } elseif ($user['step'] == "sendmessagetid") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -2859,7 +2914,7 @@ if ($text == "🔒 مسدود کردن کاربر") {
     sendmessage($from_id, $textbotlang['Admin']['ManageUser']['BlockUserId'], $backadmin, 'HTML');
     step('getidblock', $from_id);
 } elseif ($user['step'] == "getidblock") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -2880,7 +2935,7 @@ if ($text == "🔒 مسدود کردن کاربر") {
     sendmessage($from_id, $textbotlang['Admin']['ManageUser']['GetIdUserunblock'], $backadmin, 'HTML');
     step('getidunblock', $from_id);
 } elseif ($user['step'] == "getidunblock") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -2930,7 +2985,7 @@ elseif ($text == "📊 وضعیت تایید شماره کاربر") {
     sendmessage($from_id, $textbotlang['Admin']['ManageUser']['GetIdUserunblock'], $backadmin, 'HTML');
     step('get_status', $from_id);
 } elseif ($user['step'] == "get_status") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -2966,7 +3021,7 @@ if ($text == "👀 مشاهده شماره تلفن کاربر") {
     sendmessage($from_id, $textbotlang['Admin']['ManageUser']['GetIdUserunblock'], $backadmin, 'HTML');
     step('get_number_admin', $from_id);
 } elseif ($user['step'] == "get_number_admin") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -3134,7 +3189,7 @@ if ($text == "❌ حذف محصول") {
     step('remove-product', $from_id);
     sendmessage($from_id, $textbotlang['Admin']['Product']['selectRemoveProduct'], $json_list_product_list_admin, 'HTML');
 } elseif ($user['step'] == "remove-product") {
-    if (!in_array($text, $name_product)) {
+    if (!in_array($text, $product_names_list)) {
         sendmessage($from_id, $textbotlang['users']['sell']['error-product'], null, 'HTML');
         return;
     }
@@ -3153,7 +3208,7 @@ if ($text == "✏️ ویرایش محصول") {
     sendmessage($from_id, $textbotlang['Admin']['Product']['selectEditProduct'], $json_list_product_list_admin, 'HTML');
     step('change_filde', $from_id);
 } elseif ($user['step'] == "change_filde") {
-    if (!in_array($text, $name_product)) {
+    if (!in_array($text, $product_names_list)) {
         sendmessage($from_id, $textbotlang['users']['sell']['error-product'], null, 'HTML');
         return;
     }
@@ -3267,7 +3322,7 @@ if ($text == "⬆️️️ افزایش موجودی کاربر") {
     sendmessage($from_id, $textbotlang['Admin']['Balance']['AddBalance'], $backadmin, 'HTML');
     step('add_Balance', $from_id);
 } elseif ($user['step'] == "add_Balance") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -3293,7 +3348,7 @@ if ($text == "⬇️ کم کردن موجودی") {
     sendmessage($from_id, $textbotlang['Admin']['Balance']['NegativeBalance'], $backadmin, 'HTML');
     step('Negative_Balance', $from_id);
 } elseif ($user['step'] == "Negative_Balance") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -3319,7 +3374,7 @@ if ($text == "👁‍🗨 مشاهده اطلاعات کاربر") {
     sendmessage($from_id, $textbotlang['Admin']['ManageUser']['GetIdUserunblock'], $backadmin, 'HTML');
     step('show_info', $from_id);
 } elseif ($user['step'] == "show_info") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -3509,7 +3564,7 @@ if ($text == "🛍 مشاهده سفارشات کاربر") {
     sendmessage($from_id, $textbotlang['Admin']['ManageUser']['ViewOrder'], $backadmin, 'HTML');
     step('GetIdAndOrdedrs', $from_id);
 } elseif ($user['step'] == "GetIdAndOrdedrs") {
-    if (!in_array($text, $users_ids)) {
+    if (!in_array($text, $users_id_list)) {
         sendmessage($from_id, $textbotlang['Admin']['not-user'], $backadmin, 'HTML');
         return;
     }
@@ -3541,7 +3596,7 @@ if ($text == "❌ حذف کد هدیه") {
     sendmessage($from_id, $textbotlang['Admin']['Discount']['RemoveCode'], $json_list_Discount_list_admin, 'HTML');
     step('remove-Discount', $from_id);
 } elseif ($user['step'] == "remove-Discount") {
-    if (!in_array($text, $code_Discount)) {
+    if (!in_array($text, $discount_codes_list)) {
         sendmessage($from_id, $textbotlang['Admin']['Discount']['NotCode'], null, 'HTML');
         return;
     }
@@ -4134,7 +4189,7 @@ if ($text == "❌ حذف کد تخفیف") {
     sendmessage($from_id, $textbotlang['Admin']['Discount']['RemoveCode'], $json_list_Discount_list_admin_sell, 'HTML');
     step('remove-Discountsell', $from_id);
 } elseif ($user['step'] == "remove-Discountsell") {
-    if (!in_array($text, $SellDiscount)) {
+    if (!in_array($text, $sell_discount_codes_list)) {
         sendmessage($from_id, $textbotlang['Admin']['Discount']['NotCode'], null, 'HTML');
         return;
     }
@@ -4147,33 +4202,33 @@ if ($text == "❌ حذف کد تخفیف") {
 if ($text == "👥 تنظیمات زیر مجموعه گیری") {
     sendmessage($from_id, $textbotlang['users']['selectoption'], $affiliates, 'HTML');
 } elseif ($text == "🎁 وضعیت زیرمجموعه گیری") {
-    $affiliatesvalue = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
+    $affiliates_value = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
     $keyboardaffiliates = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $affiliatesvalue, 'callback_data' => $affiliatesvalue],
+                ['text' => $affiliates_value, 'callback_data' => $affiliates_value],
             ],
         ]
     ]);
     sendmessage($from_id, $textbotlang['Admin']['Status']['affiliates'], $keyboardaffiliates, 'HTML');
 } elseif ($datain == "onaffiliates") {
     update("affiliates", "affiliatesstatus", "offaffiliates");
-    $affiliatesvalue = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
+    $affiliates_value = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
     $keyboardaffiliates = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $affiliatesvalue, 'callback_data' => $affiliatesvalue],
+                ['text' => $affiliates_value, 'callback_data' => $affiliates_value],
             ],
         ]
     ]);
     Editmessagetext($from_id, $message_id, $textbotlang['Admin']['Status']['affiliatesStatusOff'], $keyboardaffiliates);
 } elseif ($datain == "offaffiliates") {
     update("affiliates", "affiliatesstatus", "onaffiliates");
-    $affiliatesvalue = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
+    $affiliates_value = select("affiliates", "*", null, null, "select")['affiliatesstatus'];
     $keyboardaffiliates = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $affiliatesvalue, 'callback_data' => $affiliatesvalue],
+                ['text' => $affiliates_value, 'callback_data' => $affiliates_value],
             ],
         ]
     ]);
@@ -4231,33 +4286,33 @@ if ($text == "🧮 تنظیم درصد زیرمجموعه") {
     ]);
     Editmessagetext($from_id, $message_id, $textbotlang['Admin']['Status']['commissionStatuson'], $keyboardcommission);
 } elseif ($text == "🎁 دریافت هدیه") {
-    $marzbanDiscountaffiliates = select("affiliates", "*", null, null, "select");
+    $marzbanDiscountAffiliates = select("affiliates", "*", null, null, "select");
     $keyboardDiscountaffiliates = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $marzbanDiscountaffiliates['Discount'], 'callback_data' => $marzbanDiscountaffiliates['Discount']],
+                ['text' => $marzbanDiscountAffiliates['Discount'], 'callback_data' => $marzbanDiscountAffiliates['Discount']],
             ],
         ]
     ]);
     sendmessage($from_id, $textbotlang['Admin']['Status']['Discountaffiliates'], $keyboardDiscountaffiliates, 'HTML');
 } elseif ($datain == "onDiscountaffiliates") {
     update("affiliates", "Discount", "offDiscountaffiliates");
-    $marzbanDiscountaffiliates = select("affiliates", "*", null, null, "select");
+    $marzbanDiscountAffiliates = select("affiliates", "*", null, null, "select");
     $keyboardDiscountaffiliates = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $marzbanDiscountaffiliates['Discount'], 'callback_data' => $marzbanDiscountaffiliates['Discount']],
+                ['text' => $marzbanDiscountAffiliates['Discount'], 'callback_data' => $marzbanDiscountAffiliates['Discount']],
             ],
         ]
     ]);
     Editmessagetext($from_id, $message_id, $textbotlang['Admin']['Status']['DiscountaffiliatesStatusOff'], $keyboardDiscountaffiliates);
 } elseif ($datain == "offDiscountaffiliates") {
     update("affiliates", "Discount", "onDiscountaffiliates");
-    $marzbanDiscountaffiliates = select("affiliates", "*", null, null, "select");
+    $marzbanDiscountAffiliates = select("affiliates", "*", null, null, "select");
     $keyboardDiscountaffiliates = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $marzbanDiscountaffiliates['Discount'], 'callback_data' => $marzbanDiscountaffiliates['Discount']],
+                ['text' => $marzbanDiscountAffiliates['Discount'], 'callback_data' => $marzbanDiscountAffiliates['Discount']],
             ],
         ]
     ]);
