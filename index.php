@@ -2155,7 +2155,7 @@ if ($text == "👥 زیر مجموعه گیری") {
         return;
     }
     $affiliates = select("affiliates", "*", null, null, "select");
-    $textaffiliates = "{$affiliates['description']}\n\n🔗 https://t.me/$usernamebot?start=$from_id";
+    $textaffiliates = "{$affiliates['description']}\n\n🔗 https://t.me/$BOTUSERNAME?start=$from_id";
     telegram('sendphoto', [
         'chat_id' => $from_id,
         'photo' => $affiliates['id_media'],
