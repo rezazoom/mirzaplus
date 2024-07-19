@@ -306,6 +306,8 @@ if ($text == "🏠 بازگشت به منوی اصلی" || $datain == "backuser"
     if ($datain == "backuser")
         deletemessage($from_id, $message_id);
 
+
+    sendmessage($from_id, "🏠", $keyboard, 'html');
     sendmessage($from_id, $textbotlang['users']['back'], $keyboard, 'html');
     step('home', $from_id);
     return;
@@ -1685,12 +1687,13 @@ if ($text == $datatextbot['text_Add_Balance']) {
     }
     if ($user['number'] == "none" && $setting['get_number'] == "✅ تایید شماره موبایل روشن است")
         return;
+    sendmessage($from_id, sprintf("💰 — مقدار شارژ کیف پول شما در حال حاضر %s تومان می‌باشد.", number_format($user['Balance'], 0)), $backuser, 'HTML');
     sendmessage($from_id, $textbotlang['users']['Balance']['priceinput'], $backuser, 'HTML');
     step('getprice', $from_id);
 } elseif ($user['step'] == "getprice") {
     if (!is_numeric($text))
         return sendmessage($from_id, $textbotlang['users']['Balance']['errorprice'], null, 'HTML');
-    if ($text > 10000000 or $text < 20000)
+    if ($text > CARD_TRANSFER_AMOUNT_LIMIT['max'] or $text < CARD_TRANSFER_AMOUNT_LIMIT['min'])
         return sendmessage($from_id, $textbotlang['users']['Balance']['errorpricelimit'], null, 'HTML');
     update("user", "Processing_value", $text, "id", $from_id);
     sendmessage($from_id, $textbotlang['users']['Balance']['selectPatment'], $step_payment, 'HTML');
@@ -1699,17 +1702,17 @@ if ($text == $datatextbot['text_Add_Balance']) {
     if ($datain == "cart_to_offline") {
         $PaySetting = select("PaySetting", "ValuePay", "NamePay", "CartDescription", "select")['ValuePay'];
         $Processing_value = number_format($user['Processing_value']);
-        $textcart = "برای افزایش موجودی به صورت دستی، مبلغ $Processing_value  تومان  را به شماره‌ی حساب زیر واریز کنید 👇🏻
+        $textcart = sprintf("برای افزایش موجودی به صورت دستی، مبلغ %s تومان  را به شماره‌ی حساب زیر واریز کنید 👇🏻
     
-    ==================== 
-    $PaySetting
-    ====================
+==================== 
+%s
+====================
     
 🌅 عکس رسید خود را در این مرحله ارسال نمایید. 
     
-⚠️ حداکثر واریز مبلغ 10 میلیون تومان می باشد.
-⚠️ امکان برداشت وجه از کیف پول  نیست.
-⚠️ مسئولیت واریز اشتباهی با شماست.";
+⚠️ حداکثر واریز مبلغ %s تومان می باشد.
+⚠️ امکان برداشت وجه از کیف‌پول وجود ندارد.
+⚠️ مسئولیت واریز اشتباهی با شماست.", $Processing_value, $PaySetting, number_format(CARD_TRANSFER_AMOUNT_LIMIT['max']));
         sendmessage($from_id, $textcart, $backuser, 'HTML');
         step('cart_to_cart_user', $from_id);
     }

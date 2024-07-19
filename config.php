@@ -4,7 +4,7 @@ const DBNAME = 'databasename';
 const DBCHARSET = 'utf8mb4';
 const DBUSERNAME = "username";
 const DBPASSWD = "password";
-
+const CARD_TRANSFER_AMOUNT_LIMIT = ['min' => 20000, 'max' => 2000000];
 $connect = mysqli_connect(DBHOST, DBUSERNAME, DBPASSWD, DBNAME);
 
 if ($connect->connect_error) {
