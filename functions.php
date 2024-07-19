@@ -46,8 +46,6 @@ function step($step, $from_id)
     global $pdo;
     $stmt = $pdo->prepare('UPDATE user SET step = ? WHERE id = ?');
     $stmt->execute([$step, $from_id]);
-
-
 }
 
 function select($table, $field, $whereField = null, $whereValue = null, $type = "select")
@@ -187,7 +185,7 @@ function generateUsername($from_id, $naming_method, $username, $randomString, $t
     return false;
 }
 
-function outputlunk($text)
+function outputlunk($text): bool|string
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $text);
@@ -196,17 +194,18 @@ function outputlunk($text)
     $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
     curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
     $response = curl_exec($ch);
+
     if ($response === false) {
         $error = curl_error($ch);
+        curl_close($ch);
         return "";
     } else {
+        curl_close($ch);
         return $response;
     }
-
-    curl_close($ch);
 }
 
-function DirectPayment($order_id)
+function DirectPayment($order_id): void
 {
     global $pdo, $ManagePanel, $textbotlang, $keyboard, $from_id, $message_id, $callback_query_id;
     $setting = select("setting", "*");
