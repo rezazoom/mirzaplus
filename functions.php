@@ -1,15 +1,18 @@
 <?php
 require_once 'vendor/autoload.php';
+
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
-function ActiveVoucher($ev_number, $ev_code){
+
+function ActiveVoucher($ev_number, $ev_code)
+{
     global $connect;
-    $Payer_Account = select("PaySetting", "ValuePay", "NamePay", 'perfectmoney_Payer_Account',"select")['ValuePay'];
-    $AccountID = select("PaySetting", "ValuePay", "NamePay", 'perfectmoney_AccountID',"select")['ValuePay'];
-    $PassPhrase = select("PaySetting", "ValuePay", "NamePay", 'perfectmoney_PassPhrase',"select")['ValuePay'];
+    $Payer_Account = select("PaySetting", "ValuePay", "NamePay", 'perfectmoney_Payer_Account', "select")['ValuePay'];
+    $AccountID = select("PaySetting", "ValuePay", "NamePay", 'perfectmoney_AccountID', "select")['ValuePay'];
+    $PassPhrase = select("PaySetting", "ValuePay", "NamePay", 'perfectmoney_PassPhrase', "select")['ValuePay'];
     $opts = array(
         'socket' => array(
             'bindto' => 'ip',
@@ -21,8 +24,10 @@ function ActiveVoucher($ev_number, $ev_code){
     $voucher = file_get_contents("https://perfectmoney.com/acct/ev_activate.asp?AccountID=" . $AccountID . "&PassPhrase=" . $PassPhrase . "&Payee_Account=" . $Payer_Account . "&ev_number=" . $ev_number . "&ev_code=" . $ev_code);
     return $voucher;
 }
-function update($table, $field, $newValue, $whereField = null, $whereValue = null) {
-    global $pdo,$user;
+
+function update($table, $field, $newValue, $whereField = null, $whereValue = null)
+{
+    global $pdo, $user;
 
     if ($whereField !== null) {
         $stmt = $pdo->prepare("SELECT $field FROM $table WHERE $whereField = ? FOR UPDATE");
@@ -35,14 +40,18 @@ function update($table, $field, $newValue, $whereField = null, $whereValue = nul
         $stmt->execute([$newValue]);
     }
 }
-function step($step, $from_id){
+
+function step($step, $from_id)
+{
     global $pdo;
     $stmt = $pdo->prepare('UPDATE user SET step = ? WHERE id = ?');
     $stmt->execute([$step, $from_id]);
 
 
 }
-function select($table, $field, $whereField = null, $whereValue = null, $type = "select") {
+
+function select($table, $field, $whereField = null, $whereValue = null, $type = "select")
+{
     global $pdo;
 
     $query = "SELECT $field FROM $table";
@@ -55,7 +64,7 @@ function select($table, $field, $whereField = null, $whereValue = null, $type = 
         $stmt = $pdo->prepare($query);
 
         if ($whereField !== null) {
-            $stmt->bindParam(':whereValue', $whereValue , PDO::PARAM_STR);
+            $stmt->bindParam(':whereValue', $whereValue, PDO::PARAM_STR);
         }
 
         $stmt->execute();
@@ -64,7 +73,7 @@ function select($table, $field, $whereField = null, $whereValue = null, $type = 
             return $stmt->rowCount();
         } elseif ($type == "FETCH_COLUMN") {
             return $stmt->fetchAll(PDO::FETCH_COLUMN);
-        }elseif ($type == "fetchAll") {
+        } elseif ($type == "fetchAll") {
             return $stmt->fetchAll();
         } else {
             return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -75,25 +84,30 @@ function select($table, $field, $whereField = null, $whereValue = null, $type = 
     }
 }
 
-function generateUUID() {
+function generateUUID()
+{
     $data = openssl_random_pseudo_bytes(16);
     $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
-    $data[8] = chr(ord($data[8]) & 0x3f | 0x80); 
+    $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
 
     $uuid = vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 
     return $uuid;
 }
-function tronratee(){
+
+function tronratee()
+{
     $tronrate = [];
     $tronrate['results'] = [];
     $requests = json_decode(file_get_contents('https://eswap.ir/fa/rates'), true);
     $tronrate['result']['USD'] = $requests['fiats'][0]['price'];
-    $tronrate['result']['TRX'] = $requests['coins'][0]['price']*$requests['fiats'][0]['price'];
+    $tronrate['result']['TRX'] = $requests['coins'][0]['price'] * $requests['fiats'][0]['price'];
     return $tronrate;
 }
-function nowPayments($payment, $price_amount, $order_id, $order_description){
-    $apinowpayments = select("PaySetting", "ValuePay", "NamePay", 'apinowpayment',"select")['ValuePay'];
+
+function nowPayments($payment, $price_amount, $order_id, $order_description)
+{
+    $apinowpayments = select("PaySetting", "ValuePay", "NamePay", 'apinowpayment', "select")['ValuePay'];
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://api.nowpayments.io/v1/' . $payment,
@@ -120,8 +134,10 @@ function nowPayments($payment, $price_amount, $order_id, $order_description){
     curl_close($curl);
     return json_decode($response);
 }
-function StatusPayment($paymentid){
-    $apinowpayments = select("PaySetting", "ValuePay", "NamePay", 'apinowpayment',"select")['ValuePay'];
+
+function StatusPayment($paymentid)
+{
+    $apinowpayments = select("PaySetting", "ValuePay", "NamePay", 'apinowpayment', "select")['ValuePay'];
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://api.nowpayments.io/v1/payment/' . $paymentid,
@@ -141,6 +157,7 @@ function StatusPayment($paymentid){
     curl_close($curl);
     return $response;
 }
+
 function formatBytes($bytes, $precision = 2): string
 {
     $base = log($bytes, 1024);
@@ -148,10 +165,12 @@ function formatBytes($bytes, $precision = 2): string
     $suffixes = ['بایت', 'کیلوبایت', 'مگابایت', 'گیگابایت', 'ترابایت'];
     return round(pow(1024, $base - $power), $precision) . ' ' . $suffixes[$power];
 }
+
 #---------------------[ ]--------------------------#
-function generateUsername($from_id,$Metode,$username,$randomString,$text)
+function generateUsername($from_id, $naming_method, $username, $randomString, $text): bool|string
 {
     global $connect;
+
     $setting = select("setting", "*");
     global $connect;
     if($Metode == "آیدی عددی + حروف و عدد رندوم"){
@@ -169,30 +188,33 @@ function generateUsername($from_id,$Metode,$username,$randomString,$text)
     elseif($Metode == "متن دلخواه + عدد رندوم")return $setting['namecustome']."_".$randomString;
 }
 
-function outputlunk($text){
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $text);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-$userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
-curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
-$response = curl_exec($ch);
-if($response === false) {
-    $error = curl_error($ch);
-    return "";
-} else {
-    return $response;
+function outputlunk($text)
+{
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $text);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+    curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
+    $response = curl_exec($ch);
+    if ($response === false) {
+        $error = curl_error($ch);
+        return "";
+    } else {
+        return $response;
+    }
+
+    curl_close($ch);
 }
 
-curl_close($ch);
-}
-function DirectPayment($order_id){
-    global $pdo,$ManagePanel,$textbotlang,$keyboard,$from_id,$message_id,$callback_query_id;
+function DirectPayment($order_id)
+{
+    global $pdo, $ManagePanel, $textbotlang, $keyboard, $from_id, $message_id, $callback_query_id;
     $setting = select("setting", "*");
-    $admin_ids = select("admin", "id_admin",null,null,"FETCH_COLUMN");
-    $Payment_report = select("Payment_report", "*", "id_order", $order_id,"select");
+    $admin_ids = select("admin", "id_admin", null, null, "FETCH_COLUMN");
+    $Payment_report = select("Payment_report", "*", "id_order", $order_id, "select");
     $format_price_cart = number_format($Payment_report['price']);
-    $Balance_id = select("user", "*", "id", $Payment_report['id_user'],"select");
+    $Balance_id = select("user", "*", "id", $Payment_report['id_user'], "select");
     $steppay = explode("|", $Payment_report['invoice']);
     if ($steppay[0] == "getconfigafterpay") {
         $stmt = $pdo->prepare("SELECT * FROM invoice WHERE username = '{$steppay[1]}' AND Status = 'unpaid' LIMIT 1");
@@ -203,35 +225,35 @@ function DirectPayment($order_id){
         $info_product = $stmt->fetch(PDO::FETCH_ASSOC);
         $username_ac = $get_invoice['username'];
         $randomString = bin2hex(random_bytes(2));
-        $marzban_list_get = select("marzban_panel", "*", "name_panel", $get_invoice['Service_location'],"select");
+        $marzban_list_get = select("marzban_panel", "*", "name_panel", $get_invoice['Service_location'], "select");
         $date = strtotime("+" . $get_invoice['Service_time'] . "days");
-        if(intval($get_invoice['Service_time']) == 0){
+        if (intval($get_invoice['Service_time']) == 0) {
             $timestamp = 0;
-            }else{
+        } else {
             $timestamp = strtotime(date("Y-m-d H:i:s", $date));
-            }        
+        }
         $datac = array(
-    'expire' => $timestamp,
-    'data_limit' => $get_invoice['Volume'] * pow(1024, 3),
-    );
-        $dataoutput = $ManagePanel->createUser($marzban_list_get['name_panel'],$username_ac,$datac);
+            'expire' => $timestamp,
+            'data_limit' => $get_invoice['Volume'] * pow(1024, 3),
+        );
+        $dataoutput = $ManagePanel->createUser($marzban_list_get['name_panel'], $username_ac, $datac);
 
         if ($dataoutput['username'] == null) {
-        $dataoutput['msg'] = json_encode($dataoutput['msg']);
-        sendmessage($Balance_id['id'], $textbotlang['users']['sell']['ErrorConfig'], $keyboard, 'HTML');
-        $texterros = "
+            $dataoutput['msg'] = json_encode($dataoutput['msg']);
+            sendmessage($Balance_id['id'], $textbotlang['users']['sell']['ErrorConfig'], $keyboard, 'HTML');
+            $texterros = "
 ⭕️ یک کاربر قصد دریافت اکانت داشت که ساخت کانفیگ با خطا مواجه شده و به کاربر کانفیگ داده نشد
 ✍️ دلیل خطا : 
 {$dataoutput['msg']}
 آیدی کابر : {$Balance_id['id']}
 نام کاربری کاربر : @{$Balance_id['username']}
 نام پنل : {$marzban_list_get['name_panel']}";
-        foreach ($admin_ids as $admin) {
-            sendmessage($admin, $texterros, null, 'HTML');
-        step('home', $admin);
+            foreach ($admin_ids as $admin) {
+                sendmessage($admin, $texterros, null, 'HTML');
+                step('home', $admin);
+            }
+            return;
         }
-        return;
-    }
         $output_config_link = "";
         $config = "";
         $Shoppinginfo = [
@@ -265,17 +287,17 @@ function DirectPayment($order_id){
 📚 راهنمای اتصال به سرویس را از طریق کلیک کردن دکمه زیر مطالعه بفرمایید";
         if ($marzban_list_get['configManual'] == "onconfig") {
             if (count($dataoutput['configs']) == 1) {
-        $urlimage = "{$get_invoice['id_user']}$randomString.png";
-        $writer = new PngWriter();
-        $qrCode = QrCode::create($output_config_link)
-            ->setEncoding(new Encoding('UTF-8'))
-            ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
-            ->setSize(400)
-            ->setMargin(0)
-            ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin);
-        $result = $writer->write($qrCode, null, null);
-        $result->saveToFile($urlimage);
-        telegram('sendphoto', [
+                $urlimage = "{$get_invoice['id_user']}$randomString.png";
+                $writer = new PngWriter();
+                $qrCode = QrCode::create($output_config_link)
+                    ->setEncoding(new Encoding('UTF-8'))
+                    ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
+                    ->setSize(400)
+                    ->setMargin(0)
+                    ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin);
+                $result = $writer->write($qrCode, null, null);
+                $result->saveToFile($urlimage);
+                telegram('sendphoto', [
                     'chat_id' => $get_invoice['id_user'],
                     'photo' => new CURLFile($urlimage),
                     'reply_markup' => $Shoppinginfo,
@@ -286,19 +308,18 @@ function DirectPayment($order_id){
             } else {
                 sendmessage($get_invoice['id_user'], $textcreatuser, $Shoppinginfo, 'HTML');
             }
-        }
-        elseif ($marzban_list_get['sublink'] == "onsublink") {
+        } elseif ($marzban_list_get['sublink'] == "onsublink") {
             $urlimage = "{$get_invoice['id_user']}$randomString.png";
             $writer = new PngWriter();
-        $qrCode = QrCode::create($output_config_link)
-            ->setEncoding(new Encoding('UTF-8'))
-            ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
-            ->setSize(400)
-            ->setMargin(0)
-            ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin);
-        $result = $writer->write($qrCode, null, null);
-        $result->saveToFile($urlimage);
-        telegram('sendphoto', [
+            $qrCode = QrCode::create($output_config_link)
+                ->setEncoding(new Encoding('UTF-8'))
+                ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
+                ->setSize(400)
+                ->setMargin(0)
+                ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin);
+            $result = $writer->write($qrCode, null, null);
+            $result->saveToFile($urlimage);
+            telegram('sendphoto', [
                 'chat_id' => $get_invoice['id_user'],
                 'photo' => new CURLFile($urlimage),
                 'reply_markup' => $Shoppinginfo,
@@ -309,39 +330,39 @@ function DirectPayment($order_id){
         }
         $partsdic = explode("_", $Balance_id['Processing_value_four']);
         if ($partsdic[0] == "dis") {
-            $SellDiscountlimit = select("DiscountSell", "*", "codeDiscount", $partsdic[1],"select");
+            $SellDiscountlimit = select("DiscountSell", "*", "codeDiscount", $partsdic[1], "select");
             $value = intval($SellDiscountlimit['usedDiscount']) + 1;
-            update("DiscountSell","usedDiscount",$value, "codeDiscount",$partsdic[1]);
+            update("DiscountSell", "usedDiscount", $value, "codeDiscount", $partsdic[1]);
             $stmt = $pdo->prepare("INSERT INTO Giftcodeconsumed (id_user,code) VALUES (:id_user,:code)");
             $stmt->bindParam(':id_user', $Balance_id['id']);
             $stmt->bindParam(':code', $partsdic[1]);
             $stmt->execute();
             $text_report = "⭕️ یک کاربر با نام کاربری @{$Balance_id['username']}  و آیدی عددی {$Balance_id['id']} از کد تخفیف {$partsdic[1]} استفاده کرد.";
             if (strlen($setting['Channel_Report']) > 0) {
-                telegram('sendmessage',[
-        'chat_id' => $setting['Channel_Report'],
-        'text' => $text_report,
-        ]);
+                telegram('sendmessage', [
+                    'chat_id' => $setting['Channel_Report'],
+                    'text' => $text_report,
+                ]);
             }
         }
-        $affiliatescommission = select("affiliates", "*", null, null,"select");
-        if ($affiliatescommission['status_commission'] == "oncommission" &&($Balance_id['affiliates'] !== null || $Balance_id['affiliates'] != 0)) {
+        $affiliatescommission = select("affiliates", "*", null, null, "select");
+        if ($affiliatescommission['status_commission'] == "oncommission" && ($Balance_id['affiliates'] !== null || $Balance_id['affiliates'] != 0)) {
             $result = ($get_invoice['price_product'] * $affiliatescommission['affiliatespercentage']) / 100;
-            $user_Balance = select("user", "*", "id", $Balance_id['affiliates'],"select");
-            if(isset($user_Balance)){
-            $Balance_prim = $user_Balance['Balance'] + $result;
-            update("user","Balance",$Balance_prim, "id",$Balance_id['affiliates']);
-            $result = number_format($result);
-            $textadd = "🎁  پرداخت پورسانت 
+            $user_Balance = select("user", "*", "id", $Balance_id['affiliates'], "select");
+            if (isset($user_Balance)) {
+                $Balance_prim = $user_Balance['Balance'] + $result;
+                update("user", "Balance", $Balance_prim, "id", $Balance_id['affiliates']);
+                $result = number_format($result);
+                $textadd = "🎁  پرداخت پورسانت 
         
         مبلغ $result تومان به حساب شما از طرف  زیر مجموعه تان به کیف پول شما واریز گردید";
-            sendmessage($Balance_id['affiliates'], $textadd, null, 'HTML');
+                sendmessage($Balance_id['affiliates'], $textadd, null, 'HTML');
             }
         }
         $Balance_prims = $Balance_id['Balance'] - $get_invoice['price_product'];
-        if($Balance_prims <= 0) $Balance_prims = 0;
-        update("user","Balance",$Balance_prims, "id",$Balance_id['id']);
-        $Balance_id['Balance'] = select("user", "Balance", "id", $get_invoice['id_user'],"select")['Balance'];
+        if ($Balance_prims <= 0) $Balance_prims = 0;
+        update("user", "Balance", $Balance_prims, "id", $Balance_id['id']);
+        $Balance_id['Balance'] = select("user", "Balance", "id", $get_invoice['id_user'], "select")['Balance'];
         $balanceformatsell = number_format($Balance_id['Balance'], 0);
         $text_report = " 🛍 خرید جدید بعد پرداخت موفق
                 
@@ -359,54 +380,56 @@ function DirectPayment($order_id){
             اطلاعات کاربر 👇👇
             ⚜️ نام کاربری کاربر: @{$Balance_id['username']}";
         if (strlen($setting['Channel_Report']) > 0) {
-            telegram('sendmessage',[
-        'chat_id' => $setting['Channel_Report'],
-        'text' => $text_report,
-        'parse_mode' => "HTML"
-        ]);
+            telegram('sendmessage', [
+                'chat_id' => $setting['Channel_Report'],
+                'text' => $text_report,
+                'parse_mode' => "HTML"
+            ]);
         }
-        update("invoice","status","active","username",$get_invoice['username']);
-        if($Payment_report['Payment_Method'] == "cart to cart"){
-        update("invoice","Status","active","id_invoice",$get_invoice['id_invoice']);
-        telegram('answerCallbackQuery', array(
-            'callback_query_id' => $callback_query_id,
-            'text' => "سفارش تایید شد",
-            'show_alert' => true,
-            'cache_time' => 5,
-        )
-        );
+        update("invoice", "status", "active", "username", $get_invoice['username']);
+        if ($Payment_report['Payment_Method'] == "cart to cart") {
+            update("invoice", "Status", "active", "id_invoice", $get_invoice['id_invoice']);
+            telegram('answerCallbackQuery', array(
+                    'callback_query_id' => $callback_query_id,
+                    'text' => "سفارش تایید شد",
+                    'show_alert' => true,
+                    'cache_time' => 5,
+                )
+            );
         }
-    }else {
+    } else {
         $Balance_confrim = intval($Balance_id['Balance']) + intval($Payment_report['price']);
-        update("user","Balance",$Balance_confrim, "id",$Payment_report['id_user']);
-        update("Payment_report","payment_Status","paid","id_order",$Payment_report['id_order']);
+        update("user", "Balance", $Balance_confrim, "id", $Payment_report['id_user']);
+        update("Payment_report", "payment_Status", "paid", "id_order", $Payment_report['id_order']);
         $Payment_report['price'] = number_format($Payment_report['price'], 0);
         $format_price_cart = $Payment_report['price'];
-        if($Payment_report['Payment_Method'] == "cart to cart"){
-        telegram('answerCallbackQuery', array(
-            'callback_query_id' => $callback_query_id,
-            'text' => "سفارش تایید شد",
-            'show_alert' => true,
-            'cache_time' => 5,
-        )
-        );
+        if ($Payment_report['Payment_Method'] == "cart to cart") {
+            telegram('answerCallbackQuery', array(
+                    'callback_query_id' => $callback_query_id,
+                    'text' => "سفارش تایید شد",
+                    'show_alert' => true,
+                    'cache_time' => 5,
+                )
+            );
         }
         sendmessage($Payment_report['id_user'], "💎 کاربر گرامی مبلغ {$Payment_report['price']} تومان به کیف پول شما واریز گردید با تشکراز پرداخت شما.
                 
 🛒 کد پیگیری شما: {$Payment_report['id_order']}", null, 'HTML');
+    }
 }
-}
-function savedata($type,$namefiled,$valuefiled){
+
+function savedata($type, $namefiled, $valuefiled)
+{
     global $from_id;
-    if($type == "clear"){
+    if ($type == "clear") {
         $datauser = [];
         $datauser[$namefiled] = $valuefiled;
         $data = json_encode($datauser);
-        update("user","Processing_value",$data,"id",$from_id);
-    }elseif($type == "save"){
-        $userdata = select("user","*","id",$from_id,"select");
-        $dataperevieos = json_decode($userdata['Processing_value'],true);
+        update("user", "Processing_value", $data, "id", $from_id);
+    } elseif ($type == "save") {
+        $userdata = select("user", "*", "id", $from_id, "select");
+        $dataperevieos = json_decode($userdata['Processing_value'], true);
         $dataperevieos[$namefiled] = $valuefiled;
-        update("user","Processing_value",json_encode($dataperevieos),"id",$from_id);
+        update("user", "Processing_value", json_encode($dataperevieos), "id", $from_id);
     }
 }
