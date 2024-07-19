@@ -172,20 +172,19 @@ function generateUsername($from_id, $naming_method, $username, $randomString, $t
     global $connect;
 
     $setting = select("setting", "*");
-    global $connect;
-    if($Metode == "آیدی عددی + حروف و عدد رندوم"){
-        return $from_id."_".$randomString;
-    }
-    elseif($Metode == "نام کاربری + حروف و عدد رندوم"){
-        return $username."_".$randomString;
-    }
-    elseif($Metode == "نام کاربری + عدد به ترتیب"){
+
+    if ($naming_method == "آیدی عددی + حروف و عدد رندوم") {
+        return $from_id . "_" . $randomString;
+    } elseif ($naming_method == "نام کاربری + حروف و عدد رندوم") {
+        return $username . "_" . $randomString;
+    } elseif ($naming_method == "نام کاربری + عدد به ترتیب") {
         $statistics = mysqli_fetch_assoc(mysqli_query($connect, "SELECT COUNT(id_user)  FROM invoice WHERE id_user = '$from_id'"));
-        $countInvoice = intval($statistics['COUNT(id_user)']) + 1 ;
-        return $username."_".$countInvoice;
-    }
-    elseif($Metode == "نام کاربری دلخواه")return $text;
-    elseif($Metode == "متن دلخواه + عدد رندوم")return $setting['namecustome']."_".$randomString;
+        $countInvoice = intval($statistics['COUNT(id_user)']) + 1;
+        return $username . "_" . $countInvoice;
+    } elseif ($naming_method == "نام کاربری دلخواه") return $text . "_" . $randomString;
+    elseif ($naming_method == "متن دلخواه + عدد رندوم") return $setting['namecustome'] . "_" . $randomString;
+
+    return false;
 }
 
 function outputlunk($text)
