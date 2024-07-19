@@ -165,7 +165,7 @@ function formatBytes($bytes, $precision = 2): string
 }
 
 #---------------------[ ]--------------------------#
-function generateUsername($from_id, $naming_method, $username, $randomString, $text): bool|string
+function generateUsername($from_id, $naming_method, $username, $randomString, $text): null|string
 {
     global $connect;
 
@@ -179,10 +179,10 @@ function generateUsername($from_id, $naming_method, $username, $randomString, $t
         $statistics = mysqli_fetch_assoc(mysqli_query($connect, "SELECT COUNT(id_user)  FROM invoice WHERE id_user = '$from_id'"));
         $countInvoice = intval($statistics['COUNT(id_user)']) + 1;
         return $username . "_" . $countInvoice;
-    } elseif ($naming_method == "نام کاربری دلخواه") return $text . "_" . $randomString;
+    } elseif ($naming_method == "نام کاربری دلخواه") return strtolower($text . "_" . $randomString);
     elseif ($naming_method == "متن دلخواه + عدد رندوم") return $setting['namecustome'] . "_" . $randomString;
 
-    return false;
+    return null;
 }
 
 function outputlunk($text): bool|string
