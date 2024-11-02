@@ -1319,6 +1319,7 @@ if ($text == $datatextbot['text_sell']) {
     }
 
     $locationproduct = select("marzban_panel", "*", null, null, "count");
+
     if ($locationproduct == 0) {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['nullpanel'], null, 'HTML');
         return;
@@ -1530,7 +1531,7 @@ if ($text == $datatextbot['text_sell']) {
         $SellDiscountlimit = select("DiscountSell", "*", "codeDiscount", $partsdic[0], "select");
         $value = intval($SellDiscountlimit['usedDiscount']) + 1;
         update("DiscountSell", "usedDiscount", $value, "codeDiscount", $partsdic[0]);
-        $text_report = "⭕️ یک کاربر با نام کاربری @$username  و آیدی عددی $from_id از کد تخفیف {$partsdic[0]} استفاده کرد.";
+        $text_report = sprintf("🎟 — کاربر با نام‌کاربری %s و آی‌دی عددی %s از کد تخفیف %s استفاده کرد.", $username, $from_id, $partsdic[0]);
         if (isset($setting['Channel_Report']) && strlen($setting['Channel_Report']) > 0) {
             sendmessage($setting['Channel_Report'], $text_report, null, 'HTML');
         }
@@ -2219,13 +2220,7 @@ if (!in_array($from_id, $admins_id_list)) {
     return;
 }
 if (in_array($text, $textadmin)) {
-    $text_admin = "
-        سلام مدیر عزیز به پنل ادمین خوش امدی گلم😍
-    ⭕️ نسخه فعلی ربات شما : $version
-    ❓راهنمایی : 
-    1 - برای اضافه کردن پنل دکمه پنل   را زده و دکمه اضافه کردن پنل را بزنید.
-    2- از دکمه مالی میتوانید وضعیت درگاه و مرچنت ها را تنظیم کنید
-    3-  درگاه ارزی ریالی باید فقط api nowpayments را تنظیم کنید و تمام تنظیمات کیف پول و... داخل سایت nowpayments است";
+    $text_admin = "🎛 — مدیر عزیز به پنل مدیریت خوش آمدید!\nنسخه‌ی فعلی ربات: $version";
     sendmessage($from_id, $text_admin, $keyboardadmin, 'HTML');
 }
 if ($text == "🏠 بازگشت به منوی مدیریت") {
@@ -2332,7 +2327,7 @@ if ($text == "📊 آمار ربات") {
     $stmt->execute();
     $invoice = $stmt->rowCount();
     $ping = sys_getloadavg();
-    $ping = floatval($ping[0]);
+
     $keyboardstatistics = json_encode([
         'inline_keyboard' => [
             [
@@ -2348,8 +2343,8 @@ if ($text == "📊 آمار ربات") {
                 ['text' => $textbotlang['Admin']['phpversion'], 'callback_data' => 'phpversion'],
             ],
             [
-                ['text' => number_format($ping, 2), 'callback_data' => 'ping'],
-                ['text' => $textbotlang['Admin']['pingbot'], 'callback_data' => 'ping'],
+                ['text' => number_format(floatval($ping[0]), 2) . ", " . number_format(floatval($ping[1]), 2) . ", " . number_format(floatval($ping[2]), 2), 'callback_data' => 'ping'],
+                ['text' => $textbotlang['Admin']['cpu_load_average'], 'callback_data' => 'ping'],
             ],
             [
                 ['text' => $invoice, 'callback_data' => 'sellservices'],
@@ -2360,7 +2355,7 @@ if ($text == "📊 آمار ربات") {
                 ['text' => $textbotlang['Admin']['dayListSell'], 'callback_data' => 'dayListSell'],
             ],
             [
-                ['text' => $Balanceall['SUM(Balance)'], 'callback_data' => 'Balanceall'],
+                ['text' => number_format((float)$Balanceall['SUM(Balance)'], 0) . " تومان", 'callback_data' => 'Balanceall'],
                 ['text' => $textbotlang['Admin']['Balanceall'], 'callback_data' => 'Balanceall'],
             ],
             [
