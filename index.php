@@ -1,5 +1,7 @@
 <?php
 
+if (version_compare(PHP_VERSION, '8.1.0', ">=")) die("This script needs at least PHP v8.1.");
+
 ini_set('error_log', 'error_log');
 date_default_timezone_set('Asia/Tehran');
 
@@ -1134,7 +1136,7 @@ if ($user['step'] == "createusertest" || preg_match('/locationtests_(.*)/', $dat
     $output_config_link = "";
     if ($marzban_list_get['sublink'] == "onsublink") {
         $output_config_link = $dataoutput['subscription_url'];
-        $link_config = "            
+        $link_config = "
         {$textbotlang['users']['stateus']['linksub']}
         $output_config_link";
     }
