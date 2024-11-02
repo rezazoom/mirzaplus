@@ -1,6 +1,6 @@
 <?php
 
-if (version_compare(PHP_VERSION, '8.1.0', ">=")) die("This script needs at least PHP v8.1.");
+if (version_compare(PHP_VERSION, '8.1.0', "<")) die("This script needs at least PHP v8.1. You are running on " . PHP_VERSION);
 
 ini_set('error_log', 'error_log');
 date_default_timezone_set('Asia/Tehran');
