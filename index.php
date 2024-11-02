@@ -1305,6 +1305,19 @@ if ($text == $datatextbot['text_account']) {
     sendmessage($from_id, $text_account, $keyboardPanel, 'HTML');
 }
 if ($text == $datatextbot['text_sell']) {
+
+    $human_readable_user_balance = number_format($user['Balance'], 0);
+
+    if ($user_balance < 4000) {
+        sendmessage($from_id, sprintf("⚠️ — خطا!
+با توجه به موجودی نزدیک به صفر شما، این اقدام غیرفعال است.
+
+موجودی فعلی شما: %s تومان
+
+لطفاً ابتدا با استفاده از دکمه «🏦 کیف پول + شارژ» اعتبار خود را افزایش و سپس دوباره برای خرید سرویس اقدام نمائید.", $human_readable_user_balance), null, "HTML");
+        return;
+    }
+
     $locationproduct = select("marzban_panel", "*", null, null, "count");
     if ($locationproduct == 0) {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['nullpanel'], null, 'HTML');
