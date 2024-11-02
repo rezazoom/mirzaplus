@@ -72,8 +72,16 @@ $keyboard = [
     ],
     'resize_keyboard' => true
 ];
-if(in_array($from_id,$admin_ids)){
-$keyboard['keyboard'][] = [
+
+
+# Don't show Test Account if it is disabled for all users.
+if ($setting['limit_usertest_all'] == 0) {
+    unset($keyboard['keyboard'][0][1]);
+}
+
+# Add admin button for administrators
+if (in_array($from_id, $admin_ids)) {
+    $keyboard['keyboard'][] = [
         ['text' => "ادمین"],
     ];
 }
